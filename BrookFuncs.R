@@ -1,0 +1,708 @@
+####### This will hold all the functions being used in the alzheimer's research
+
+### First section is ATN model with no piecewise component
+### Second component starts ~ line 260 and is AN model (Nada's old code)
+
+
+##### data setup, known stuff
+##### includes death rates, prevalence rates from jack (2017), incidence rates from meta-analysis
+setwd("/Users/Tommy/Desktop/Tommy/School/Grad School/Research/Research Brookmeyer/Code")
+rates <- read.csv("U.S.mortality.rates.csv")
+jack_prev_men <- as.matrix(read_excel("ATN_estimates_rescaled.xlsx")[,c(1, 2, 6, 8, 9, 4, 5, 3, 7)])
+men_prev <- jack_prev_men[,-1] / 100
+jack_prev_fem <- as.matrix(read_excel("ATN_estimates_rescaled.xlsx")[,c(1, 10, 14, 16, 17, 12, 13, 11, 15)])
+fem_prev <- jack_prev_fem[,-1] / 100
+
+
+trans.params <- read.csv("params.opt_01.26.2020.csv")[,-1]
+r45.params <- unlist(read.csv("params.r45.csv")[-1])
+r45.params[1] <- exp(r45.params[1])
+# p.preclinical <- as.vector(read.csv("prev.preclinical_03.01.2021.csv")[,2])
+p.preclinical <- as.vector(read.csv("prev.preclinical_03.15.2021.csv")[,2])
+
+fem_prev_u <- p.preclinical * fem_prev
+men_prev_u <- p.preclinical * men_prev
+
+death <- 12
+ad.state <- 10
+
+#females
+dr.f <- function(a, y, f){
+  rates.sub <- subset(rates, rates[, 1] == y)
+  d.f <- f * rates.sub[a + 1, 3]
+  return(d.f)
+}
+#males
+dr.m <- function(a, y, f){
+  rates.sub <- subset(rates, rates[, 1] == y)
+  d.f <- f * rates.sub[a + 1, 4]
+  return(d.f)
+}
+
+alpha.int<-function(one.two, one.six, one.eight, two.three, two.nine, three.four, four.five, five.ten, six.three,
+                    six.seven, seven.four, eight.seven, eight.nine, nine.four, ten.eleven){
+  
+  # 12 states including advanced alz (11) and death (12)
+  alpha<-matrix(1, nrow = 11, ncol = 12)
+  
+  alpha[1, 2] <- one.two
+  alpha[1, 6] <- one.six
+  alpha[1, 8] <- one.eight
+  alpha[2, 3] <- two.three
+  alpha[2, 9] <- two.nine
+  alpha[3, 4] <- three.four
+  alpha[4, 5] <- four.five
+  alpha[5, 10] <- five.ten
+  alpha[6, 3] <- six.three
+  alpha[6, 7] <- six.seven
+  alpha[7, 4] <- seven.four
+  alpha[8, 7] <- eight.seven
+  alpha[8, 9] <- eight.nine
+  alpha[9, 4] <- nine.four
+  alpha[10, 11] <- ten.eleven  ## stage 11 is advanced alzheimer's
+  return(alpha)
+}
+# example: we can reduce each transition rate by 20%
+intalpha = do.call(alpha.int, as.list(rep(1, 15)))
+
+alpha.nine<-function(one.two,  two.four, four.five, one.three, three.four,three.six, 
+                     five.seven, six.seven, seven.eight){
+  alpha<-matrix(1,nrow=8,ncol=9)
+  alpha[1,2]<-one.two
+  alpha[2,4]<-two.four
+  alpha[4,5]<-four.five
+  alpha[1,3]<-one.three
+  alpha[3,4]<-three.four
+  alpha[3,6]<-three.six
+  alpha[5,7]<-five.seven
+  alpha[6,7]<-six.seven
+  alpha[7,8]<-seven.eight
+  return(alpha)
+}
+#example: no intervention 
+intalpha.AN = alpha.nine(1,1,1,1,1,1,1,1,1)
+
+########### FUNCTION MAKES MATRICES k0 and k1 FROM A VECTOR OF (log(k0ij), k1ij) pairs
+# vector length is 24
+make_trans_matrix <- function(x, r45){
+  k0 <- matrix(0, nrow = 9, ncol = 10)
+  k1 <- matrix(0, nrow = 9, ncol = 10)
+  
+  x[seq(1, 23, 2)] <- exp(x[seq(1, 23, 2)])
+  # from state 1
+  k0[1, 2] <- x[1]
+  k1[1, 2] <- x[2]
+  k0[1, 6] <- x[3]
+  k1[1, 6] <- x[4]
+  k0[1, 8] <- x[5]
+  k1[1, 8] <- x[6]
+  # state 2
+  k0[2, 3] <- x[7]
+  k1[2, 3] <- x[8]
+  k0[2, 9] <- x[9]
+  k1[2, 9] <- x[10]
+  # state 3
+  k0[3, 4] <- x[11]
+  k1[3, 4] <- x[12]
+  # state 4 (from separate estimation)
+  k0[4, 5] <- r45[1]
+  k1[4, 5] <- r45[2]
+  # state 5
+  k0[5, 10] <- 0.3
+  k1[5, 10] <- 0
+  # state 6
+  k0[6, 3] <- x[13]
+  k1[6, 3] <- x[14]
+  k0[6, 7] <- x[15]
+  k1[6, 7] <- x[16]
+  # state 7
+  k0[7, 4] <- x[17]
+  k1[7, 4] <- x[18]
+  # state 8
+  k0[8, 7] <- x[19]
+  k1[8, 7] <- x[20]
+  k0[8, 9] <- x[21]
+  k1[8, 9] <- x[22]
+  # state 9
+  k0[9, 4] <- x[23]
+  k1[9, 4] <- x[24]
+  
+  return(list(k0, k1))
+}
+
+simple.params <- rep(c(log(.0008), .06), 12)
+simple.matrices <- make_trans_matrix(simple.params, r45.params)
+
+
+TP.f.ATN <- function(a, y, alpha, int.year, mcid, f, k0, k1){
+  rec_states <- vector("list", length = (ad.state - 1))
+  
+  for(i in 1:length(rec_states)){
+    # give indices for which states have nonzero transition probabilities
+    rec_states[[i]] <- which(k0[i,] > 0)
+  }
+  
+  if(y < int.year) {
+    alpha = matrix(1, nrow = (ad.state + 1), ncol = (ad.state + 2)) ##### Ask about this one
+  } else if(y >= int.year){
+    alpha = alpha
+  }
+  if(y > 2014){
+    y = 2014
+  } else if (y < 1933){
+    y <- 1933
+  }
+  else {y = y}
+  if(a > 109){
+    a = 110
+  } else {
+    a = a
+  }
+  p <- matrix(0, (ad.state + 1), (ad.state + 2))
+  p[10, 11] <- alpha[10, 11] * 0.167 * (1 - dr.f(a, y, f))   # P(alz -> advanced alz) = 0.167 if you don't die
+  p[10, death] <- alpha[10, death] * dr.f(a, y, f)                # P(death) 
+  p[11, death] <- alpha[11, death] * (dr.f(a, y, f) + 0.078)     # P(death | advanced alz) = p(death) + 0.078
+  for(i in 1:(ad.state - 1)) {
+    for(j in rec_states[[i]]){
+      # transitions to states other than death
+      # age < 65 is default
+      p[i, j] <- alpha[i, j] * k0[i, j] * exp(k1[i, j] * a) * (1 - dr.f(a, y, f))
+      
+      # transition to death
+      p[i, death] <- alpha[i, death] * dr.f(a, y, f)
+      
+      # transitions are slightly different if you have mcid
+      if(i %in% c(5)){
+        p[i, j] <- alpha[i, j] * k0[i, j] * exp(k1[i, j] * a) * (1 - (dr.f(a, y, f) * mcid))
+        p[i, death] <- alpha[i, death] * (dr.f(a, y, f) * mcid)
+      }
+    }
+  }
+  for(i in 1:(ad.state + 1)){
+    if(a < 100){
+      # prob of staying in the same state
+      p[i, i] <- 1 - sum(p[i,]) }
+    else if (a > 99){ 
+      #if you're 100 there's no way you're normal
+      p[1, 1] <- 0
+      p[i, i] <- 1 - sum(p[i,]) }
+  }
+  # if you're dead you stay dead
+  prob <- rbind(p, c(rep(0, (ad.state + 1)), 1))
+  return(prob)
+}
+
+
+##### Now transition probabilities for males
+TP.m.ATN <- function(a, y, alpha, int.year, mcid, f, k0, k1){
+  rec_states <- vector("list", length = (ad.state - 1))
+  
+  for(i in 1:length(rec_states)){
+    # give indices for which states have nonzero transition probabilities
+    rec_states[[i]] <- which(k0[i,] > 0)
+  }
+  
+  if(y < int.year) {
+    alpha = matrix(1, nrow = (ad.state + 1), ncol = (ad.state + 2)) ##### Ask about this one
+  } else if(y >= int.year){
+    alpha = alpha
+  }
+  if(y > 2014){
+    y = 2014
+  } else if (y < 1933){
+    y <- 1933
+  }
+  else {y = y}
+  if(a > 109){
+    a = 110
+  } else {
+    a = a
+  }
+  p <- matrix(0, (ad.state + 1), (ad.state + 2))
+  p[10, 11] <- alpha[10, 11] * 0.167 * (1 - dr.m(a, y, f))   # P(alz -> advanced alz) = 0.167 if you don't die
+  p[10, death] <- alpha[10, death] * dr.m(a, y, f)                # P(death) 
+  p[11, death] <- alpha[11, death] * (dr.m(a, y, f) + 0.078)     # P(death | advanced alz) = p(death) + 0.078
+  for(i in 1:(ad.state - 1)) {
+    for(j in rec_states[[i]]){
+      # transitions to states other than death
+      p[i, j] <- alpha[i, j] * k0[i, j] * exp(k1[i, j] * a) * (1 - dr.m(a, y, f))
+      
+      # transition to death
+      p[i, death] <- alpha[i, death] * dr.m(a, y, f)
+      
+      # there's a multiplier for P(death) with mcid
+      if(i %in% c(5)){
+        p[i, j] <- alpha[i, j] * k0[i, j] * exp(k1[i, j] * a) * (1 - (dr.m(a, y, f) * mcid))
+        p[i, death] <- alpha[i, death] * (dr.m(a, y, f) * mcid)
+      }
+    }
+  }
+  for(i in 1:(ad.state + 1)){
+    if(a < 100){
+      # prob of staying in the same state
+      p[i, i] <- 1 - sum(p[i,]) }
+    else if (a > 99){ 
+      #if you're 100 there's no way you're normal
+      p[1, 1] <- 0
+      p[i, i] <- 1 - sum(p[i,]) }
+  }
+  # if you're dead you stay dead
+  prob <- rbind(p, c(rep(0, (ad.state + 1)), 1))
+  return(prob)
+}
+
+Phi.f.ATN <- function(a, y, alpha, int.year, mcid, f, k0, k1){
+  # we go back to when they were 30 and multiply matrices from there
+  n = a - 30  
+  y2 <- y - n - 1
+  # prod object will contain the matrix products
+  prod <- list()
+  prod[[1]] <- TP.f.ATN(30, y2, alpha, int.year, mcid, f, k0, k1)
+  
+  for(i in 1:(n)){
+    prod[[i + 1]] <- (prod[[i]]) %*% TP.f.ATN(30 + i, y2 + i, alpha, int.year, mcid, f, k0, k1)
+  }
+  
+  # take first row because they started in state 1 (normal) when they were 30
+  phi <- prod[[n + 1]][1, 1:(ad.state + 1)]
+  return(phi)
+}
+
+# Equal function for males, uses TP.m instead of TP.f
+Phi.m.ATN <- function(a, y, alpha, int.year, mcid, f, k0, k1){
+  n = a - 30  
+  y2 <- y - n - 1
+  
+  prod <- list()
+  prod[[1]] <- TP.m.ATN(30, y2, alpha, int.year, mcid, f, k0, k1)
+  
+  for(i in 1:(n)){
+    prod[[i + 1]] <- (prod[[i]]) %*% TP.m.ATN(30 + i, y2 + i, alpha, int.year, mcid, f, k0, k1)
+  }
+  
+  phi <- prod[[n + 1]][1, 1:(ad.state + 1)]
+  return(phi)
+}
+
+
+
+#### These prevalence rates will ONLY be for comparing to the prevalence rates given by Jack (2017)
+#### Jack only gives prevalences for the eight states: 1-4 and 6-9
+Prevrate.f.ATN <- function(age, y = 2014, alpha = intalpha, int.year = 2014, mcid = 1.65, f = 1, k0, k1){
+  phi = Phi.f.ATN(age, y, alpha, int.year, mcid, f, k0, k1)
+  prevalence <- phi / sum(phi)
+  return(c(prevalence))
+}
+
+Prevrate.m.ATN <- function(age, y = 2014, alpha = intalpha, int.year = 2014, mcid = 1.65, f = 1, k0, k1){
+  phi = Phi.m.ATN(age, y, alpha, int.year, mcid, f, k0, k1)
+  prevalence <- phi / sum(phi)
+  return(c(prevalence))
+}
+
+### These are prevalence functions that will return a matrix if you give it a vector for age
+### matrix will be m x n where m = length(age) and n = 8 (for preclinical states)
+
+Prevrate.f.multi.ATN <- function(age, y = 2014, alpha = intalpha, int.year = 2014, mcid = 1.65, f = 1, k0, k1){
+  # we go back to when they were 30 and multiply matrices from there
+  phi.multi <- matrix(nrow = length(age), ncol = 8)
+  n = max(age) - 30  
+  first = min(age)
+  y2 <- y - n - 1
+  prod <- list()
+  # prod object will contain the matrix products
+  prod[[1]] <- TP.f.ATN(30, y2, alpha, int.year, mcid, f, k0, k1)
+  for(i in 1:(n)){
+    prod[[i + 1]] <- (prod[[i]]) %*% TP.f.ATN(30 + i, y2 + i, alpha, int.year, mcid, f, k0, k1)
+    if((i + 30 - first) >= 0)
+      phi.multi[(i + 30 - first + 1),] <- prod[[i + 1]][1, c(1:4,6:9)]
+  }
+  
+  prevrates <- phi.multi / rowSums(phi.multi)
+  return(prevrates)
+}
+
+Prevrate.m.multi.ATN <- function(age, y = 2014, alpha = intalpha, int.year = 2014, mcid = 1.65, f = 1, k0, k1){
+  # we go back to when they were 30 and multiply matrices from there
+  phi.multi <- matrix(nrow = length(age), ncol = 8)
+  n = max(age) - 30  
+  first = min(age)
+  y2 <- y - n - 1
+  prod <- list()
+  # prod object will contain the matrix products
+  prod[[1]] <- TP.m.ATN(30, y2, alpha, int.year, mcid, f, k0, k1)
+  for(i in 1:(n)){
+    prod[[i + 1]] <- (prod[[i]]) %*% TP.m.ATN(30 + i, y2 + i, alpha, int.year, mcid, f, k0, k1)
+    if((i + 30 - first) >= 0)
+      phi.multi[(i + 30 - first + 1),] <- prod[[i + 1]][1, c(1:4,6:9)]
+  }
+  
+  prevrates <- phi.multi / rowSums(phi.multi)
+  return(prevrates)
+}
+
+Prevrate.f.multi.ATN.uncond <- function(age, y = 2014, alpha = intalpha, int.year = 2014, mcid = 1.65, f = 1, k0, k1){
+  # we go back to when they were 30 and multiply matrices from there
+  phi.multi <- matrix(nrow = length(age), ncol = (death - 1))
+  n = max(age) - 30  
+  first = min(age)
+  y2 <- y - n - 1
+  prod <- list()
+  # prod object will contain the matrix products
+  prod[[1]] <- TP.f.ATN(30, y2, alpha, int.year, mcid, f, k0, k1)
+  for(i in 1:(n)){
+    prod[[i + 1]] <- (prod[[i]]) %*% TP.f.ATN(30 + i, y2 + i, alpha, int.year, mcid, f, k0, k1)
+    if((i + 30 - first) >= 0)
+      phi.multi[(i + 30 - first + 1),] <- prod[[i + 1]][1, 1:(death - 1)]
+  }
+  
+  prevrates <- (phi.multi / rowSums(phi.multi))[, c(1:4, 6:9)]
+  return(prevrates)
+}
+
+Prevrate.m.multi.ATN.uncond <- function(age, y = 2014, alpha = intalpha, int.year = 2014, mcid = 1.65, f = 1, k0, k1){
+  # we go back to when they were 30 and multiply matrices from there
+  phi.multi <- matrix(nrow = length(age), ncol = (death - 1))
+  n = max(age) - 30  
+  first = min(age)
+  y2 <- y - n - 1
+  prod <- list()
+  # prod object will contain the matrix products
+  prod[[1]] <- TP.m.ATN(30, y2, alpha, int.year, mcid, f, k0, k1)
+  for(i in 1:(n)){
+    prod[[i + 1]] <- (prod[[i]]) %*% TP.m.ATN(30 + i, y2 + i, alpha, int.year, mcid, f, k0, k1)
+    if((i + 30 - first) >= 0)
+      phi.multi[(i + 30 - first + 1),] <- prod[[i + 1]][1, 1:(death - 1)]
+  }
+  
+  prevrates <- (phi.multi / rowSums(phi.multi))[, c(1:4, 6:9)]
+  return(prevrates)
+}
+
+incidence.females <- NULL
+
+incidence.f.multi <- function(age, y = 2014, alpha = intalpha, int.year = 2014, mcid = 1.65, f = 1, k0, k1){
+
+  # we go back to when they were 30 and multiply matrices from there
+  inc.multi <- vector(length = length(age))
+  n = max(age) - 30  
+  first = min(age)
+  y2 <- y - n - 1
+  prod <- list()
+  # prod object will contain the matrix products
+  prod[[1]] <- TP.f.ATN(30, y2, intalpha, int.year, mcid, f, k0, k1)
+  for(i in 1:(n)){
+    prod[[i + 1]] <- (prod[[i]]) %*% TP.f.ATN(30 + i, y2 + i, intalpha, int.year = 2014, mcid, f, k0, k1)
+    if((i + 30 - first) >= 0){
+      inc.multi[(i + 30 - first + 1)] <- prev_curr[5] * TP.f.ATN(30 + i - 1, y2 + i - 1, alpha, int.year, mcid, f, k0, k1)[5, 10] /
+                                          sum(prev_curr[1:9])
+    }
+    prev_curr <- prod[[i + 1]][1, 1:(death - 1)] / sum(prod[[i + 1]][1, 1:(death - 1)])
+  }
+  
+  return(inc.multi)
+  
+}
+
+incidence.m.multi <- function(age, y = 2014, alpha = intalpha, int.year = 2014, mcid = 1.65, f = 1, k0, k1){
+  
+  # we go back to when they were 30 and multiply matrices from there
+  inc.multi <- vector(length = length(age))
+  n = max(age) - 30  
+  first = min(age)
+  y2 <- y - n - 1
+  prod <- list()
+  # prod object will contain the matrix products
+  prod[[1]] <- TP.m.ATN(30, y2, intalpha, int.year, mcid, f, k0, k1)
+  prev_curr <- vector(length = (death - 1))
+  for(i in 1:(n)){
+    prod[[i + 1]] <- (prod[[i]]) %*% TP.m.ATN(30 + i, y2 + i, intalpha, int.year, mcid, f, k0, k1)
+    if((i + 30 - first) >= 0){
+      inc.multi[(i + 30 - first + 1)] <- prev_curr[5] * TP.f.ATN(30 + i - 1, y2 + i - 1, alpha, int.year, mcid, f, k0, k1)[5, 10] /
+        sum(prev_curr[1:9])
+    }
+    prev_curr <- prod[[i + 1]][1, 1:(death - 1)] / sum(prod[[i + 1]][1, 1:(death - 1)])
+  }
+  
+  return(inc.multi)
+  
+}
+
+
+
+incidence.f <- function(a, y = 2014, alpha = intalpha, int.year = 2014, mcid = 1.65, f = 1, k0, k1){
+  incidence.females <- (Prevrate.f.ATN(a - 1, y,  alpha, int.year, mcid, f, k0, k1)[5] * 
+                          TP.f.ATN(a - 1, y - 1, alpha, int.year, mcid, f, k0, k1)[5, 10]) /
+    sum(Prevrate.f.ATN(a - 1, y, alpha, int.year, mcid, f, k0, k1)[1:9])
+  return(incidence.females)
+}
+
+incidence.males <- NULL
+incidence.m <- function(a, y, alpha, int.year, mcid, f, k0, k1){
+  incidence.males <- (Prevrate.m.ATN(a - 1, y,  alpha, int.year, mcid, f, k0, k1)[5] * TP.m(a - 1, y - 1, alpha, int.year, mcid, f, k0, k1)[5, 10]) /
+    sum(Prevrate.m.ATN(a - 1, y, alpha, int.year, mcid, f, k0, k1)[1:9])
+  return(incidence.males)
+}
+
+incidence.prevrate.f.uncond <- function(age, y = 2014, alpha = intalpha, int.year = 2014, mcid = 1.65, f = 1, k0, k1){
+  
+  # we go back to when they were 30 and multiply matrices from there
+  inc.multi <- vector(length = length(age))
+  phi.multi <- matrix(nrow = length(age), ncol = (death - 1))
+  n = max(age) - 30  
+  first = min(age)
+  y2 <- y - n - 1
+  prod <- list()
+  # prod object will contain the matrix products
+  prod[[1]] <- TP.f.ATN(30, y2, intalpha, int.year, mcid, f, k0, k1)
+  prev_curr <- vector(length = (death - 1))
+  for(i in 1:(n)){
+    prod[[i + 1]] <- (prod[[i]]) %*% TP.f.ATN(30 + i, y2 + i, intalpha, int.year, mcid, f, k0, k1)
+    if((i + 30 - first) >= 0){
+      inc.multi[(i + 30 - first + 1)] <- prev_curr[5] * TP.f.ATN(30 + i - 1, y2 + i - 1, alpha, int.year, mcid, f, k0, k1)[5, 10] /
+        sum(prev_curr[1:9])
+      phi.multi[(i + 30 - first + 1),] <- prod[[i + 1]][1, 1:(death - 1)]
+    }
+    prev_curr <- prod[[i + 1]][1, 1:(death - 1)] / sum(prod[[i + 1]][1, 1:(death - 1)])
+  }
+  prevrates <- (phi.multi / rowSums(phi.multi))[, c(1:4, 6:9)]
+  return(cbind(prevrates, inc.multi))
+  
+}
+
+
+
+
+########################################
+
+####### AN MODEL with Nada's old code
+
+########################################
+
+
+alpha.nine<-function(one.two,  two.four, four.five, one.three, three.four,three.six, 
+                     five.seven, six.seven, seven.eight){
+  alpha<-matrix(1,nrow=8,ncol=9)
+  alpha[1,2]<-one.two
+  alpha[2,4]<-two.four
+  alpha[4,5]<-four.five
+  alpha[1,3]<-one.three
+  alpha[3,4]<-three.four
+  alpha[3,6]<-three.six
+  alpha[5,7]<-five.seven
+  alpha[6,7]<-six.seven
+  alpha[7,8]<-seven.eight
+  return(alpha)
+}
+#example: no intervention 
+intalpha.AN = alpha.nine(1,1,1,1,1,1,1,1,1)
+
+TP.f.AN <- function(a, y, alpha, int.year, mcid, f, k0, k1, k012, k112, k12){
+  
+  if(y < int.year){
+    alpha = matrix(1, nrow = 8, ncol = 9)
+  } else if(y >= int.year){
+    alpha = alpha
+  }
+  if(y > 2014){
+    y = 2014
+  } else if (y < 1933){
+    y <- 1933
+  }
+  else {y = y}
+  if(a > 109){
+    a = 110
+  } else {
+    a = a
+  }
+  p <- matrix(0, 8, 9)
+  p[7, 8] <- alpha[7, 8] * 0.167 * (1 - dr.f(a, y, f))
+  p[7, 9] <- alpha[7, 9] * dr.f(a, y, f)
+  p[8, 9] <- alpha[8, 9] * (dr.f(a, y, f) + 0.078)
+  # p[7,8] <- 0
+  # p[7,9] <- 1
+  
+  for(i in 1:6){
+    for(j in 1:7){
+      if(i < j){
+        if(a < 65){
+          p[i, j] < -alpha[i, j] * k0[i, j] * exp(k1[i, j] * a) * (1 - dr.f(a, y, f))}
+        else if(65 <= a & a <= 75){
+          p[1, 2] <- alpha[1, 2] * k012 * exp(k112 * a) * (1 - dr.f(a, y, f))
+          p[i, j] <- alpha[i, j] * k0[i, j] * exp(k1[i, j] * a) * (1 - dr.f(a, y, f))
+        }
+        else if(a > 75){
+          p[1, 2] <- alpha[1, 2] * k12 * (1 - dr.f(a, y, f))
+          p[3, 6] <- alpha[3, 6] * k0[3, 6] * exp(k1[3, 6] * 75) * (1 - dr.f(a, y, f))
+          p[i, j] <- alpha[i, j] * k0[i, j] * exp(k1[i, j] * a) * (1 - dr.f(a, y, f))
+        }
+        p[i, 9] <- alpha[i, 9] * dr.f(a, y, f)
+        if(i %in% 5:6){
+          p[i, j] <- alpha[i, j] * k0[i, j] * exp(k1[i, j] * a) * (1 - (dr.f(a, y, f) * mcid))
+          p[i, 9] <- alpha[i, 9] * (dr.f(a, y, f) * mcid)
+        }
+      }
+    }
+  }
+  for(i in 1:8){
+    if(a < 100){
+      p[i, i] <- 1 - sum(p[i, 1:9]) }
+    else if (a > 99){
+      p[1, 1] <- 0
+      p[i, i] <- 1 - sum(p[i, 1:9]) }
+  }
+  prob <- rbind(p, c(rep(0, 8), 1))
+  return(prob)
+}
+TP.m.AN <- function(a, y, alpha, int.year, mcid, f, k0, k1, k012, k112, k12){
+  if(y < int.year){
+    alpha = matrix(1, nrow = 8, ncol = 9)
+  } else if(y >= int.year){
+    alpha = alpha
+  }
+  if(y > 2014){
+    y = 2014
+  } else if (y < 1933){
+    y <- 1933
+  }
+  else {y = y}
+  if(a > 109){
+    a = 110
+  } else {
+    a = a
+  }
+  p <- matrix(0, 8, 9)
+  p[7, 8] <- alpha[7, 8] * 0.167 * (1 - dr.m(a, y, f))
+  p[7, 9] <- alpha[7, 9] * dr.m(a, y, f)
+  p[8, 9] <- alpha[8, 9] * (dr.m(a, y, f) + 0.078)
+  # p[7, 9] <- 1
+  # p[7, 8] <- 0
+  for(i in 1:6){
+    for(j in 1:7){
+      if(i < j){
+        if(a < 65){
+          p[i, j] <- alpha[i, j] * k0[i, j] * exp(k1[i, j] * a) * (1 - dr.m(a, y, f))}
+        else if(65 <= a & a <= 75){
+          p[1, 2] <- alpha[1, 2] * k012 * exp(k112 * a) * (1 - dr.m(a, y, f))
+          p[i, j] <- alpha[i, j] * k0[i, j] * exp(k1[i, j] * a) * (1 - dr.m(a, y, f))
+        }
+        else if(a>75){
+          p[1, 2] <- alpha[1, 2] * 0.07 * (1 - dr.m(a, y, f))
+          p[3, 6] <- alpha[3, 6] * k0[3, 6] * exp(k1[3, 6] * 75) * (1 - dr.m(a, y, f))
+          p[i, j] <- alpha[i, j] * k0[i, j] * exp(k1[i, j] * a) * (1 - dr.m(a, y, f))
+        }
+        p[i, 9] <- alpha[i, 9] * dr.m(a, y, f)
+        if(i %in% 5:6){
+          p[i, j] <- alpha[i, j] * k0[i, j] * exp(k1[i, j] * a) * (1 - (dr.m(a, y, f) * mcid))
+          p[i, 9] <- alpha[i, 9] * (dr.m(a, y, f) * mcid)
+        }
+      }
+    }
+  }
+  for(i in 1:8){
+    if(a < 100){
+      p[i, i] <- 1 - sum(p[i, 1:9]) }
+    else if (a > 99){
+      p[1, 1] <- 0
+      p[i, i] <- 1 - sum(p[i, 1:9]) }
+  }
+  prob <- rbind(p, c(rep(0, 8), 1))
+  return(prob)
+}
+
+#### These aren't really used but here they are
+Phi.f.AN <- function(a, y, alpha, int.year, mcid, f, k0, k1, k012, k112, k12){
+  n = a - 30  
+  y2 <- y - n - 1
+  for(i in 1:(n)){
+    prod[[1]] <- TP.f.AN(30, y2, alpha, int.year, mcid, f, k0, k1, k012, k112, k12)
+    prod[[i + 1]] <- (prod[[i]]) %*% TP.f.AN(30 + i, y2 + i, alpha, int.year, mcid, f, k0, k1, k012, k112, k12)}
+  phi <- prod[[n + 1]][1, 1:8]
+  return(phi)
+}
+
+Phi.m.AN <- function(a, y, alpha, int.year, mcid, f, k0, k1, k012, k112, k12){
+  n = a - 30  
+  y2 <- y - n - 1
+  for(i in 1:(n)){
+    prod[[1]] <- TP.m.AN(30, y2, alpha, int.year, mcid, f, k0, k1, k012, k112, k12)
+    prod[[i + 1]] <- (prod[[i]]) %*% TP.m.AN(30 + i, y2 + i, alpha, int.year, mcid, f, k0, k1, k012, k112, k12)}
+  phi <- prod[[n + 1]][1, 1:8]
+  return(phi)
+}
+
+Prevrate.f.AN <- function(a, y, alpha, int.year, mcid, f, k0, k1, k012, k112, k12){
+  phi = Phi.f(a, y, alpha, int.year, mcid, f, k0, k1, k012, k112, k12)
+  prevalence <- phi / sum(phi)
+  return(c(prevalence))
+}
+
+Prevrate.m.AN <- function(a, y, alpha, int.year, mcid, f, k0, k1, k012, k112, k12){
+  phi = Phi.m(a, y, alpha, int.year, mcid, f, k0, k1, k012, k112, k12)
+  prevalence <- phi / sum(phi)
+  return(c(prevalence))
+}
+
+### Prevalences for all states up through advanced AD dementia
+### give an age vector and it'll give prevalences for states 1-8 for each age
+
+Prevrate.f.multi.AN <- function(age, y, alpha, int.year, mcid, f, k0, k1, k012, k112, k12){
+  # we go back to when they were 30 and multiply matrices from there
+  phi.multi <- matrix(nrow = length(age), ncol = 8)
+  n = max(age) - 30  
+  first = min(age)
+  y2 <- y - n - 1
+  prod <- list()
+  # prod object will contain the matrix products
+  prod[[1]] <- TP.f.AN(30, y2, alpha, int.year, mcid, f, k0, k1, k012, k112, k12)
+  for(i in 1:(n)){
+    prod[[i + 1]] <- (prod[[i]]) %*% TP.f.AN(30 + i, y2 + i, alpha, int.year, mcid, f, k0, k1, k012, k112, k12)
+    if((i + 30 - first) >= 0)
+      phi.multi[(i + 30 - first + 1),] <- prod[[i + 1]][1, 1:8]
+  }
+  
+  prevrates <- phi.multi / rowSums(phi.multi)
+  return(prevrates)
+}
+
+Prevrate.m.multi.AN <- function(age, y, alpha, int.year, mcid, f, k0, k1, k012, k112, k12){
+  # we go back to when they were 30 and multiply matrices from there
+  phi.multi <- matrix(nrow = length(age), ncol = 8)
+  n = max(age) - 30  
+  first = min(age)
+  y2 <- y - n - 1
+  # prod object will contain the matrix products
+  prod[[1]] <- TP.m.AN(30, y2, alpha, int.year, mcid, f, k0, k1, k012, k112, k12)
+  for(i in 1:(n)){
+    prod[[i + 1]] <- (prod[[i]]) %*% TP.m.AN(30 + i, y2 + i, alpha, int.year, mcid, f, k0, k1, k012, k112, k12)
+    if((i + 30 - first) >= 0)
+      phi.multi[(i + 30 - first + 1),] <- prod[[i + 1]][1, 1:8]
+  }
+  
+  prevrates <- phi.multi / rowSums(phi.multi)
+  return(prevrates)
+}
+
+k0.AN<-matrix(0,6,7)
+k1.AN<-matrix(0,6,7)
+k0.AN[1,2]<-0.000149
+k1.AN[1,2]<-0.086
+k0.AN[1,3]<-7.531246e-06
+k1.AN[1,3]<-0.117866
+k0.AN[3,4]<-0.00012646
+k1.AN[3,4]<-0.081938
+k0.AN[2,4]<-0.001109085
+k1.AN[2,4]<-0.0616514
+k0.AN[3,6]<-0.003276065
+k1.AN[3,6]<-0.01981314
+k0.AN[6,7]<-0.09
+k1.AN[6,7]<-0
+k0.AN[4,5]<-2.595831e-05
+k1.AN[4,5]<-0.096183077
+k0.AN[5,7]<-0.3
+k1.AN[5,7]<-0
+k012.AN<-0.00105
+k112.AN<-0.05596
+k12.AN<-0.07
+
+
