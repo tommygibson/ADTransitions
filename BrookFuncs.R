@@ -3,10 +3,12 @@
 ### First section is ATN model with no piecewise component
 ### Second component starts ~ line 260 and is AN model (Nada's old code)
 
+library(readxl)
+
 
 ##### data setup, known stuff
 ##### includes death rates, prevalence rates from jack (2017), incidence rates from meta-analysis
-setwd("/Users/Tommy/Desktop/Tommy/School/Grad School/Research/Research Brookmeyer/Code")
+# setwd("/Users/Tommy/Desktop/Tommy/School/Grad School/Research/Research Brookmeyer/Code")
 rates <- read.csv("U.S.mortality.rates.csv")
 jack_prev_men <- as.matrix(read_excel("ATN_estimates_rescaled.xlsx")[,c(1, 2, 6, 8, 9, 4, 5, 3, 7)])
 men_prev <- jack_prev_men[,-1] / 100
@@ -14,7 +16,7 @@ jack_prev_fem <- as.matrix(read_excel("ATN_estimates_rescaled.xlsx")[,c(1, 10, 1
 fem_prev <- jack_prev_fem[,-1] / 100
 
 
-trans.params <- read.csv("params.opt_01.26.2020.csv")[,-1]
+# trans.params <- read.csv("params.opt_01.26.2020.csv")[,-1]
 r45.params <- unlist(read.csv("params.r45.csv")[-1])
 r45.params[1] <- exp(r45.params[1])
 # p.preclinical <- as.vector(read.csv("prev.preclinical_03.01.2021.csv")[,2])
