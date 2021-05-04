@@ -155,8 +155,9 @@ TP.f.ATN <- function(a, y, alpha, int.year, mcid, f, k0, k1){
     y <- 1933
   }
   else {y = y}
-  if(a > 109){
-    a = 110
+  # we assume rates don't change after age 95
+  if(a > 95){
+    a = 95
   } else {
     a = a
   }
@@ -181,13 +182,16 @@ TP.f.ATN <- function(a, y, alpha, int.year, mcid, f, k0, k1){
     }
   }
   for(i in 1:(ad.state + 1)){
-    if(a < 100){
-      # prob of staying in the same state
-      p[i, i] <- 1 - sum(p[i,]) }
-    else if (a > 99){ 
-      #if you're 100 there's no way you're normal
-      p[1, 1] <- 0
-      p[i, i] <- 1 - sum(p[i,]) }
+    # prob of staying in the same state
+    p[i, i] <- 1 - sum(p[i,])
+    
+    # if(a < 100){
+    #   # prob of staying in the same state
+    #   p[i, i] <- 1 - sum(p[i,]) }
+    # else if (a > 99){ 
+    #   #if you're 100 there's no way you're normal
+    #   p[1, 1] <- 0
+    #   p[i, i] <- 1 - sum(p[i,]) }
   }
   # if you're dead you stay dead
   prob <- rbind(p, c(rep(0, (ad.state + 1)), 1))
@@ -215,8 +219,8 @@ TP.m.ATN <- function(a, y, alpha, int.year, mcid, f, k0, k1){
     y <- 1933
   }
   else {y = y}
-  if(a > 109){
-    a = 110
+  if(a > 95){
+    a = 95
   } else {
     a = a
   }
@@ -240,13 +244,16 @@ TP.m.ATN <- function(a, y, alpha, int.year, mcid, f, k0, k1){
     }
   }
   for(i in 1:(ad.state + 1)){
-    if(a < 100){
-      # prob of staying in the same state
-      p[i, i] <- 1 - sum(p[i,]) }
-    else if (a > 99){ 
-      #if you're 100 there's no way you're normal
-      p[1, 1] <- 0
-      p[i, i] <- 1 - sum(p[i,]) }
+    # prob of staying in same state
+    p[i, i] <- 1 - sum(p[i,])
+    
+    # if(a < 100){
+    #   # prob of staying in the same state
+    #   p[i, i] <- 1 - sum(p[i,]) }
+    # else if (a > 99){ 
+    #   #if you're 100 there's no way you're normal
+    #   p[1, 1] <- 0
+    #   p[i, i] <- 1 - sum(p[i,]) }
   }
   # if you're dead you stay dead
   prob <- rbind(p, c(rep(0, (ad.state + 1)), 1))
