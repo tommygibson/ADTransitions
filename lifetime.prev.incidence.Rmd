@@ -1,0 +1,80 @@
+---
+title: "Evaluating optimized transition rates through plots and lifetime risks"
+author: "Tommy Gibson"
+date: "5/4/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE)
+```
+
+
+```{r}
+
+library(ggplot2)
+library(tidyverse)
+
+source("AD_eval.f.g.R")
+
+load("lifetime.table.f.Rda")
+load("lifetime.table.m.Rda")
+
+avg.prev.opt <- readRDS("avg.prev.opt_05.03.2021.rds")
+avg.prev <- make_prevplot_data(avg.prev.opt$solution)
+avg.inc <- make_incplot_data(avg.prev.opt$solution)
+
+avg.uncond.plot <- ggplot(data = avg.prev, mapping = aes(x = Age, y = Prevalence_uncond)) + 
+  geom_line(aes(color = Source)) + 
+  facet_wrap( ~ State, nrow = 4) +
+  scale_color_manual(values = c("deepskyblue1", "black")) +
+  labs(title = "Cross-sectional and Fitted Unconditional Prevalence",
+       y = "Unconditional Prevalence (%)")
+
+avg.cond.plot <- ggplot(data = avg.prev, mapping = aes(x = Age, y = Prevalence_cond)) +
+  geom_line(aes(color = Source)) + 
+  facet_wrap( ~ State, nrow = 4) +
+  scale_color_manual(values = c("deepskyblue1", "black")) +
+  labs(title = "Cross-sectional and Fitted Conditional Prevalence",
+       y = "Conditional Prevalence (%)") +
+  scale_y_continuous(breaks = seq(0, 1, 0.25))
+
+avg.inc.plot <- ggplot(avg.inc, mapping = aes(x = Age, y = Incidence, color = Source)) +
+  geom_line(size = .75) +
+  scale_color_manual(values = c("black", "deepskyblue1")) +
+  labs(title = "Empirical and Fitted Incidence of AD Dementia",
+       y = "Incidence (% per year)")
+```
+
+```{r}
+
+avg.uncond.plot
+
+```
+
+```{r}
+
+avg.cond.plot
+
+```
+
+
+```{r}
+
+avg.inc.plot
+
+```
+
+```{r}
+
+kable(lifetime.table.f)
+
+```
+
+
+```{r}
+
+kable(lifetime.table.m)
+
+```
+

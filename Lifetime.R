@@ -6,7 +6,10 @@ source("BrookFuncs.R")
 
 eq.weight.opt <- readRDS("weight.1.opt_04.21.2021.rds")
 
+avg.prev.opt <- readRDS("avg.prev.opt_05.03.2021.rds")
+
 eq.weight.mats <- make_trans_matrix(eq.weight.opt$solution, r45.params)
+avg.prev.mats <- make_trans_matrix(avg.prev.opt$solution, r45.params)
 
 AR.f.ATN <- function(a, t, y, int.year, alpha, mcid, f, k0, k1){
   prod <- sum <- vector("list")
@@ -121,29 +124,25 @@ lifetime <- function(age, g, state, int.year, alpha, mcid, f, k0, k1){
 
 #### testing with optimized results
 
-# lifetime(70, "Female", 3, 2014, intalpha, 1.65, 1, eq.weight.mats[[1]], eq.weight.mats[[2]])
-# lifetime(70, "Male", 3, 2014, intalpha, 1.65, 1, eq.weight.mats[[1]], eq.weight.mats[[2]])
-
+## Recreating tables 1 and 3 from Ron's 2018 paper in alzheimer's and dementia
 
 tab.ages <- seq(60, 90, 5)
-lifetime.table.f <- matrix(nrow = length(tab.ages), ncol = 10)
-lifetime.table.m <- matrix(nrow = length(tab.ages), ncol = 10)
-tenyr.table.f <- matrix(nrow = length(tab.ages), ncol = 10)
+lifetime.table.f <- as.data.frame(matrix(nrow = length(tab.ages), ncol = 10))
+lifetime.table.m <- as.data.frame(matrix(nrow = length(tab.ages), ncol = 10))
 
-lifetime.table.f[,1] <- lifetime.table.m[,1]<- tenyr.table.f[,1] <- tab.ages
+lifetime.table.f[,1] <- lifetime.table.m[,1] <- tab.ages
 
 
 for(i in 1:length(tab.ages)){
   for(j in 1:9){
     
-    curr.f <- lifetime(tab.ages[i], "Female", j, 2014, intalpha, 1.65, 1, eq.weight.mats[[1]],
-                       eq.weight.mats[[2]])
-    curr.m <- lifetime(tab.ages[i], "Male", j, 2014, intalpha, 1.65, 1, eq.weight.mats[[1]],
-                       eq.weight.mats[[2]])
+    curr.f <- lifetime(tab.ages[i], "Female", j, 2017, intalpha, 1.65, 1, avg.prev.mats[[1]],
+                       avg.prev.mats[[2]])
+    curr.m <- lifetime(tab.ages[i], "Male", j, 2017, intalpha, 1.65, 1, avg.prev.mats[[1]],
+                       avg.prev.mats[[2]])
     
     lifetime.table.f[i, (j + 1)] <- curr.f[1]
     lifetime.table.m[i, (j + 1)] <- curr.m[1]
-    tenyr.table.f[i, (j + 1)] <- curr.f[2]
     
   }
 }
@@ -152,11 +151,13 @@ for(i in 1:length(tab.ages)){
 
 colnames(lifetime.table.f) <- colnames(lifetime.table.m) <- colnames(tenyr.table) <- c("Age", "Normal", "A", "A+T", "A+T+N",
                                                        "A+T+N + MCI", "T", "T+N", "N", "A+N")
-
+lifetime.table.f <- as.data.frame(lifetime.table.f)
+lifetime.table.m <- as.data.frame(lifetime.table.m)
 
 print(xtable(lifetime.table.f, caption = "Lifetime risk of AD dementia for females by age and disease state", type = "latex"), 
-             file = "lifetime.f.tex", include.rownames = FALSE)
+             file = "TeX files/lifetime.f.avgprev.tex", include.rownames = FALSE)
 print(xtable(lifetime.table.m, caption = "Lifetime risk of AD dementia for males by age and disease state", type = "latex"), 
-             file = "lifetime.m.tex", include.rownames = FALSE)
-print(xtable(tenyr.table, caption = "10-year risk of AD dementia by age and disease state", type = "latex"), 
-             file = "tenyear.tex", include.rownames = FALSE)
+             file = "TeX files/lifetime.m.avgprev.tex", include.rownames = FALSE)
+
+save(lifetime.table.f, file = "lifetime.table.f.Rda")
+save(lifetime.table.m, file = "lifetime.table.m.Rda")

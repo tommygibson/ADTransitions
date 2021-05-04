@@ -1,6 +1,6 @@
 ### Holds functions for optimization in nloptr
 ### 
-setwd("/Users/Tommy/Desktop/Tommy/School/Grad School/Research/Research Brookmeyer/Code")
+# setwd("/Users/Tommy/Desktop/Tommy/School/Grad School/Research/Research Brookmeyer/Code")
 source("BrookFuncs.R")
 
 eval_f_prev <- function(x, r45, prevs){
@@ -293,9 +293,9 @@ eval_f_logs_weighted <- function(x, r45, prevs, incidence, w){
                                           k0 = k0, k1 = k1)
   
   # sums of squares for prevalences
-  sumsquare.prev <- w1 * sum((log(prev.inc[, 1:8] + .0001) - log(prevs + .0001)) ^ 2)
+  sumsquare.prev <- w1 * (1 / n1) * sum((log(prev.inc[, 1:8] + .0001) - log(prevs + .0001)) ^ 2)
   # sums of squares for log(incidence), only ages 65:90
-  sumsquare.inc <- w2 * (n1 / n2) * sum((log(prev.inc[16:41, 9] * 100) - log(incidence)) ^ 2)
+  sumsquare.inc <- w2 * (1 / n2) * sum((log(prev.inc[16:41, 9] * 100) - log(incidence)) ^ 2)
   
   return(sumsquare.prev + sumsquare.inc)
   
