@@ -16,6 +16,11 @@ jack_prev_fem <- as.matrix(read_excel("ATN_estimates_rescaled.xlsx")[,c(1, 10, 1
 fem_prev <- jack_prev_fem[,-1] / 100
 avg_prev <- (fem_prev + men_prev) / 2
 
+prev.ages <- 50:95
+inc.ages <- 65:90
+
+empirical.incidence <- 0.00117 * exp(0.126 * (inc.ages - 60)) * 100
+
 
 # trans.params <- read.csv("params.opt_01.26.2020.csv")[,-1]
 r45.params <- unlist(read.csv("params.r45.csv")[-1])

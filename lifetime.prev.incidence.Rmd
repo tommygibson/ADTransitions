@@ -1,7 +1,7 @@
 ---
-title: "Evaluating optimized transition rates through plots and lifetime risks"
+title: "Lifetime risk, prevalence, and incidence estimates from ATN model after optimzation"
 author: "Tommy Gibson"
-date: "5/4/2021"
+date: "5/5/2021"
 output: pdf_document
 ---
 
@@ -9,72 +9,140 @@ output: pdf_document
 knitr::opts_chunk$set(echo = FALSE, message = FALSE)
 ```
 
+## Lifetime Risks
+
+Let's first look at lifetime risks for males and females. 
 
 ```{r}
 
 library(ggplot2)
 library(tidyverse)
+library(knitr)
 
 source("AD_eval.f.g.R")
+source("BrookFuncs.R")
 
 load("lifetime.table.f.Rda")
 load("lifetime.table.m.Rda")
 
-avg.prev.opt <- readRDS("avg.prev.opt_05.03.2021.rds")
-avg.prev <- make_prevplot_data(avg.prev.opt$solution)
-avg.inc <- make_incplot_data(avg.prev.opt$solution)
+avg.prev.opt <- readRDS("avg.prev.opt_05.05.2021.rds")
+avg.prev.f <- make_prevplot_data_f(avg.prev.opt$solution)
+avg.inc.f <- make_incplot_data_f(avg.prev.opt$solution)
+avg.prev.m <- make_prevplot_data_m(avg.prev.opt$solution)
+avg.inc.m <- make_incplot_data_m(avg.prev.opt$solution)
 
-avg.uncond.plot <- ggplot(data = avg.prev, mapping = aes(x = Age, y = Prevalence_uncond)) + 
+avg.uncond.plot.f <- ggplot(data = avg.prev.f, mapping = aes(x = Age, y = Prevalence_uncond)) + 
   geom_line(aes(color = Source)) + 
   facet_wrap( ~ State, nrow = 4) +
   scale_color_manual(values = c("deepskyblue1", "black")) +
-  labs(title = "Cross-sectional and Fitted Unconditional Prevalence",
-       y = "Unconditional Prevalence (%)")
+  labs(title = "Female Cross-sectional and Fitted Unconditional Prevalence",
+       y = "Female Unconditional Prevalence (proportion)")
 
-avg.cond.plot <- ggplot(data = avg.prev, mapping = aes(x = Age, y = Prevalence_cond)) +
+avg.cond.plot.f <- ggplot(data = avg.prev.f, mapping = aes(x = Age, y = Prevalence_cond)) +
   geom_line(aes(color = Source)) + 
   facet_wrap( ~ State, nrow = 4) +
   scale_color_manual(values = c("deepskyblue1", "black")) +
-  labs(title = "Cross-sectional and Fitted Conditional Prevalence",
-       y = "Conditional Prevalence (%)") +
+  labs(title = "Female Cross-sectional and Fitted Conditional Prevalence",
+       y = "Conditional Prevalence (proportion)") +
   scale_y_continuous(breaks = seq(0, 1, 0.25))
 
-avg.inc.plot <- ggplot(avg.inc, mapping = aes(x = Age, y = Incidence, color = Source)) +
+avg.inc.plot.f <- ggplot(avg.inc.f, mapping = aes(x = Age, y = Incidence, color = Source)) +
   geom_line(size = .75) +
   scale_color_manual(values = c("black", "deepskyblue1")) +
-  labs(title = "Empirical and Fitted Incidence of AD Dementia",
+  labs(title = "Female Empirical and Fitted Incidence of AD Dementia",
        y = "Incidence (% per year)")
+
+avg.uncond.plot.m <- ggplot(data = avg.prev.m, mapping = aes(x = Age, y = Prevalence_uncond)) + 
+  geom_line(aes(color = Source)) + 
+  facet_wrap( ~ State, nrow = 4) +
+  scale_color_manual(values = c("deepskyblue1", "black")) +
+  labs(title = "Male Cross-sectional and Fitted Unconditional Prevalence",
+       y = "Unconditional Prevalence (proportion)")
+
+avg.cond.plot.m <- ggplot(data = avg.prev.m, mapping = aes(x = Age, y = Prevalence_cond)) +
+  geom_line(aes(color = Source)) + 
+  facet_wrap( ~ State, nrow = 4) +
+  scale_color_manual(values = c("deepskyblue1", "black")) +
+  labs(title = "Male Cross-sectional and Fitted Conditional Prevalence",
+       y = "Conditional Prevalence (proportion)") +
+  scale_y_continuous(breaks = seq(0, 1, 0.25))
+
+avg.inc.plot.m <- ggplot(avg.inc.m, mapping = aes(x = Age, y = Incidence, color = Source)) +
+  geom_line(size = .75) +
+  scale_color_manual(values = c("black", "deepskyblue1")) +
+  labs(title = "Male Empirical and Fitted Incidence of AD Dementia",
+       y = "Incidence (% per year)")
+
+
+
+
 ```
+
 
 ```{r}
 
-avg.uncond.plot
 
-```
-
-```{r}
-
-avg.cond.plot
+kable(lifetime.table.f, caption = "Lifetime risk of AD for women by age and disease state")
 
 ```
 
 
 ```{r}
 
-avg.inc.plot
+kable(lifetime.table.m, caption = "Lifetime risk of AD for men by age and disease state")
 
 ```
 
-```{r}
+\newpage 
 
-kable(lifetime.table.f)
+## Conditional Prevalence
+
+Female and male prevalence rates, conditional on being alive and in a preclinical state. 
+
+```{r, fig.height = 7}
+
+avg.cond.plot.f
 
 ```
 
+```{r, fig.height = 7}
 
-```{r}
-
-kable(lifetime.table.m)
+avg.cond.plot.m
 
 ```
 
+\newpage
+
+## Unconditional prevalence
+
+Female and male prevalence rates, conditional only on being alive. 
+
+```{r, fig.height = 7}
+
+avg.uncond.plot.f
+
+```
+
+```{r, fig.height = 7}
+
+avg.uncond.plot.m
+
+```
+
+\newpage
+
+## Incidence of AD
+
+Female and male incidence rates as compared with the empirically estimated rate. Note that the empirical rate is the same in each plot, as it is sex-agnostic. 
+
+```{r, fig.height = 7}
+
+avg.inc.plot.f
+
+```
+
+```{r, fig.height = 7}
+
+avg.inc.plot.m
+
+```
