@@ -4,11 +4,11 @@
 library(xtable)
 source("BrookFuncs.R")
 
-eq.weight.opt <- readRDS("weight.1.opt_04.21.2021.rds")
+# eq.weight.opt <- readRDS("weight.1.opt_04.21.2021.rds")
 
-avg.prev.opt <- readRDS("avg.prev.opt_05.03.2021.rds")
+avg.prev.opt <- readRDS("avg.prev.opt_05.05.2021.rds")
 
-eq.weight.mats <- make_trans_matrix(eq.weight.opt$solution, r45.params)
+# eq.weight.mats <- make_trans_matrix(eq.weight.opt$solution, r45.params)
 avg.prev.mats <- make_trans_matrix(avg.prev.opt$solution, r45.params)
 
 AR.f.ATN <- function(a, t, y, int.year, alpha, mcid, f, k0, k1){
@@ -149,7 +149,7 @@ for(i in 1:length(tab.ages)){
 
 
 
-colnames(lifetime.table.f) <- colnames(lifetime.table.m) <- colnames(tenyr.table) <- c("Age", "Normal", "A", "A+T", "A+T+N",
+colnames(lifetime.table.f) <- colnames(lifetime.table.m) <- c("Age", "Normal", "A", "A+T", "A+T+N",
                                                        "A+T+N + MCI", "T", "T+N", "N", "A+N")
 lifetime.table.f <- as.data.frame(lifetime.table.f)
 lifetime.table.m <- as.data.frame(lifetime.table.m)

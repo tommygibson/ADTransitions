@@ -13,7 +13,7 @@ library(gghighlight)
 library(nloptr)
 
 
-setwd("/Users/Tommy/Desktop/Tommy/School/Grad School/Research/Research Brookmeyer/Code")
+# setwd("/Users/Tommy/Desktop/Tommy/School/Grad School/Research/Research Brookmeyer/Code")
 source("BrookFuncs.R")
 source("AD_eval.f.g.R")
 
@@ -386,7 +386,7 @@ opt.logs.matrices <- make_trans_matrix(opt.both.logs$solution, r45.params)
 # save(opt.logs.prevtest, file = "opt.logs.prev_04.08.2021.R")
 # save(opt.logs.params, file = "opt.logs.params_04.08.2021.R")
 
-base.weighted.2 <- eval_f_logs_weighted(init.simple, r45 = r45.params, prevs = fem_prev_u, incidence = empirical.incidence, w = 2)
+base.weighted.2 <- eval_f_logs_weighted(init.simple, r45 = r45.params, prevs = fem_prev_u, incidence = empirical.incidence, w = 1)
 
 inits.simple <- matrix(c(init.simple, rep(c(-6, 0.04), 12)), byrow = FALSE, ncol = 2)
 weighted.opts <- list()
@@ -449,3 +449,141 @@ weight.2.inc.plot <- ggplot(weight.2.inc, mapping = aes(x = Age, y = Incidence, 
   scale_color_manual(values = c("black", "deepskyblue1")) +
   labs(title = "Empirical and Fitted Incidence of AD Dementia",
        y = "Incidence (% per year)")
+
+
+##### optimize using averaged male/female prevalence
+
+avg.prev.opt <- nloptr(x0 = init.simple, 
+                          eval_f = eval_f_logs_weighted, 
+                          lb = lb, ub = ub, 
+                          eval_g_ineq = eval_g_ineq_weighted,
+                          opts = list("algorithm"="NLOPT_LN_COBYLA",
+                                      "xtol_rel"=1e-3,
+                                      "maxeval"=12000),
+                          r45 = r45.params,
+                          prevs = avg_prev_u,
+                          incidence = empirical.incidence,
+                          w = 1)
+
+saveRDS(avg.prev.opt, file = "avg.prev.opt_05.03.2021.rds")
+avg.prev <- make_prevplot_data(avg.prev.opt$solution)
+avg.inc <- make_incplot_data(avg.prev.opt$solution)
+
+avg.uncond.plot <- ggplot(data = avg.prev, mapping = aes(x = Age, y = Prevalence_uncond)) + 
+  geom_line(aes(color = Source)) + 
+  facet_wrap( ~ State, nrow = 4) +
+  scale_color_manual(values = c("deepskyblue1", "black")) +
+  labs(title = "Cross-sectional and Fitted Unconditional Prevalence",
+       y = "Unconditional Prevalence (%)")
+
+avg.cond.plot <- ggplot(data = avg.prev, mapping = aes(x = Age, y = Prevalence_cond)) +
+  geom_line(aes(color = Source)) + 
+  facet_wrap( ~ State, nrow = 4) +
+  scale_color_manual(values = c("deepskyblue1", "black")) +
+  labs(title = "Cross-sectional and Fitted Conditional Prevalence",
+       y = "Conditional Prevalence (%)") +
+  scale_y_continuous(breaks = seq(0, 1, 0.25))
+
+avg.inc.plot <- ggplot(avg.inc, mapping = aes(x = Age, y = Incidence, color = Source)) +
+  geom_line(size = .75) +
+  scale_color_manual(values = c("black", "deepskyblue1")) +
+  labs(title = "Empirical and Fitted Incidence of AD Dementia",
+       y = "Incidence (% per year)")
+
+
+#### tweaking the optimal solution a little so that when it searches
+#### it doesn't go outside the range of constraints
+
+ap.opt.rerun <- nloptr(x0 = init.simple, 
+                       eval_f = eval_f_logs_weighted, 
+                       lb = lb, ub = ub, 
+                       eval_g_ineq = eval_g_ineq_weighted,
+                       opts = list("algorithm"="NLOPT_LN_COBYLA",
+                                   "xtol_rel"=1e-3,
+                                   "ftol_rel"=1e-5,
+                                   "maxeval"=20000),
+                       r45 = r45.params,
+                       prevs = avg_prev_u,
+                       incidence = empirical.incidence,
+                       w = 1)
+
+saveRDS(ap.opt.rerun, file = "avg.prev.opt_05.05.2021.rds")
+avg.prev <- make_prevplot_data(avg.prev.opt$solution)
+avg.inc <- make_incplot_data(avg.prev.opt$solution)
+
+avg.uncond.plot <- ggplot(data = avg.prev, mapping = aes(x = Age, y = Prevalence_uncond)) + 
+  geom_line(aes(color = Source)) + 
+  facet_wrap( ~ State, nrow = 4) +
+  scale_color_manual(values = c("deepskyblue1", "black")) +
+  labs(title = "Cross-sectional and Fitted Unconditional Prevalence",
+       y = "Unconditional Prevalence (%)")
+
+avg.cond.plot <- ggplot(data = avg.prev, mapping = aes(x = Age, y = Prevalence_cond)) +
+  geom_line(aes(color = Source)) + 
+  facet_wrap( ~ State, nrow = 4) +
+  scale_color_manual(values = c("deepskyblue1", "black")) +
+  labs(title = "Cross-sectional and Fitted Conditional Prevalence",
+       y = "Conditional Prevalence (%)") +
+  scale_y_continuous(breaks = seq(0, 1, 0.25))
+
+avg.inc.plot <- ggplot(avg.inc, mapping = aes(x = Age, y = Incidence, color = Source)) +
+  geom_line(size = .75) +
+  scale_color_manual(values = c("black", "deepskyblue1")) +
+  labs(title = "Empirical and Fitted Incidence of AD Dementia",
+       y = "Incidence (% per year)")
+
+
+####### Seeing how much estimates change with more iterations
+opt.500 <- nloptr(x0 = init.simple, 
+                   eval_f = eval_f_logs_weighted, 
+                   lb = lb, ub = ub, 
+                   eval_g_ineq = eval_g_ineq_weighted,
+                   opts = list("algorithm"="NLOPT_LN_COBYLA",
+                               "xtol_rel"=1e-3,
+                               "maxeval"=500),
+                   r45 = r45.params,
+                   prevs = avg_prev_u,
+                   incidence = empirical.incidence,
+                   w = 1)
+
+opt.1000 <- nloptr(x0 = init.simple, 
+                   eval_f = eval_f_logs_weighted, 
+                   lb = lb, ub = ub, 
+                   eval_g_ineq = eval_g_ineq_weighted,
+                   opts = list("algorithm"="NLOPT_LN_COBYLA",
+                               "xtol_rel"=1e-3,
+                               "maxeval"=1000),
+                   r45 = r45.params,
+                   prevs = avg_prev_u,
+                   incidence = empirical.incidence,
+                   w = 1)
+opt.3000 <- nloptr(x0 = init.simple, 
+                  eval_f = eval_f_logs_weighted, 
+                  lb = lb, ub = ub, 
+                  eval_g_ineq = eval_g_ineq_weighted,
+                  opts = list("algorithm"="NLOPT_LN_COBYLA",
+                              "xtol_rel"=1e-3,
+                              "maxeval"=3000),
+                  r45 = r45.params,
+                  prevs = avg_prev_u,
+                  incidence = empirical.incidence,
+                  w = 1)
+opt.5000 <- nloptr(x0 = init.simple, 
+                   eval_f = eval_f_logs_weighted, 
+                   lb = lb, ub = ub, 
+                   eval_g_ineq = eval_g_ineq_weighted,
+                   opts = list("algorithm"="NLOPT_LN_COBYLA",
+                               "xtol_rel"=1e-3,
+                               "maxeval"=5000),
+                   r45 = r45.params,
+                   prevs = avg_prev_u,
+                   incidence = empirical.incidence,
+                   w = 1)
+
+# write down these results
+
+saveRDS(opt.500, file = "OptResults/simple.500.rds")
+saveRDS(opt.1000, file = "OptResults/simple.1000.rds")
+saveRDS(opt.3000, file = "OptResults/simple.3000.rds")
+saveRDS(opt.5000, file = "OptResults/simple.5000.rds")
+

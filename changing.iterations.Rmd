@@ -1,0 +1,174 @@
+---
+title: "How much does convergence matter?"
+author: "Tommy Gibson"
+date: "5/11/2021"
+output: pdf_document
+---
+
+## Motivation
+
+In optimizing transition rate parameters, it is unclear how much parameter estimates and the value of the objective function change with added iterations. Results up to this point have been obtained using one arbitrary set of initial values for parameters. Because the optimization algorithm we are using is a local solver, we should probably perform some sort of grid search over initial values in an effort to find the global minimum of the objective function. If parameter estimates and the objective function don't change much after some small or modest number of iterations, it may present an alternative to letting the optimizer run to convergence, which takes 10+ hours depending on the stopping criteria. 
+
+Details on the loss function, transition rate paramters, and constraints can be found in past documents. Here we try to numerically and graphically summarize how optimization output changes with added iterations. The optimization function accepts a value `maxiter`, for which the algorithm stops after `maxiter` iterations. We use values of 500, 1000, 3000, 5000, 12000, and 20000 (which stopped at 18881 because it converged).
+
+## Objective function
+
+We don't know how steep the objective function's surface is towards a minimum. Below is
+
+- A table of the value of the objective function after each number of iterations
+- A plot showing how quickly the objective function is steered towards its local minimum.
+
+Note that the value at 0 iterations is the value of the objective function at the initial values.
+
+```{r setup, include = FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, message = FALSE)
+
+```
+
+```{r}
+
+library(tidyverse)
+library(ggplot2)
+library(knitr)
+library(here)
+
+source("AD_eval.f.g.R")
+source("BrookFuncs.R")
+
+base <- eval_f_logs_weighted(simple.params, r45.params, avg_prev_u, empirical.incidence, w = 1)
+
+
+fit.500 <- readRDS(here("OptResults", "simple.500.rds"))
+fit.1000 <- readRDS(here("OptResults", "simple.1000.rds"))
+fit.3000 <- readRDS(here("OptResults", "simple.3000.rds"))
+fit.5000 <- readRDS(here("OptResults", "simple.5000.rds"))
+fit.12000 <- readRDS(here("OptResults", "simple.12000.rds"))
+fit.max <- readRDS(here("OptResults", "simple.converged.rds"))
+
+iters <- c(0, 500, 1000, 3000, 5000, 12000, 18881)
+obj <- c(base, fit.500$objective, fit.1000$objective, fit.3000$objective, fit.5000$objective,
+         fit.12000$objective, fit.max$objective)
+
+obj.dat <- cbind.data.frame(iters, obj)
+names(obj.dat) <- c("Iterations", "Objective")
+
+obj.plot <- obj.dat %>%
+  ggplot(aes(x = Iterations, y = Objective)) +
+  geom_point(color = "deepskyblue2") +
+  geom_line(size = 0.5) +
+  labs(title = "Value of objective function for varying levels of maxiter")
+
+kable(obj.dat, caption = "Value of objective function for varying levels of maxiter")
+
+```
+
+```{r, fig.height = 5}
+obj.plot
+```
+
+## Parameters
+
+Now we assess how much parameters change with varying levels of `maxiter`.
+
+```{r}
+
+k0spots <- seq(1, 23, 2)
+k1spots <- seq(2, 24, 2)
+Lk0 <- c(simple.params[k0spots], fit.500$solution[k0spots], fit.1000$solution[k0spots], fit.3000$solution[k0spots],
+         fit.5000$solution[k0spots], fit.12000$solution[k0spots], fit.max$solution[k0spots])
+
+k1 <- c(simple.params[k1spots], fit.500$solution[k1spots], fit.1000$solution[k1spots], fit.3000$solution[k1spots],
+        fit.5000$solution[k1spots], fit.12000$solution[k1spots], fit.max$solution[k1spots])
+
+trans <- c("r12", "r16", "r18", "r23", "r29", "r34", "r63", "r67", "r74", "r87", "r89", "r94")
+
+param.dat <- cbind.data.frame(rep(iters, each = 12),
+                              Lk0,
+                              k1,
+                              rep(trans, 7))
+names(param.dat) <- c("Iterations", "logk0", "k1", "Transition")
+
+k0.plot <- param.dat %>%
+  ggplot(aes(x = Iterations, y = logk0, color = Transition)) + 
+  geom_line() +
+  labs(title = "Parameter log(k0) by value of maxiter")
+
+k1.plot <- param.dat %>%
+  ggplot(aes(x = Iterations, y = k1, color = Transition)) +
+  geom_line() +
+  labs(title = "Parameter k1 by value of maxiter")
+
+
+```
+
+
+```{r, fig.height = 4.5, fig.width = 7}
+
+k0.plot
+
+```
+
+ 
+
+```{r, fig.height = 4.5, fig.width = 7}
+k1.plot
+
+```
+
+## Transitions
+
+We can calculate the transitions $r_{ij}(a)$ as functions of $\log(k_0)$ and $k_1$ for each value of `maxiter` to see how much the changes in parameter values actually affect the transition rates.
+
+```{r}
+
+plot.ages <- 50:95
+
+
+make_rij <- function(logk0, k1){
+  
+  rij <- exp(logk0 + k1 * plot.ages)
+  return(rij)
+  
+}
+
+trans.dat <- cbind.data.frame(as.vector(mapply(make_rij, param.dat$logk0, param.dat$k1)),
+                              rep(plot.ages, (12 * 7)),
+                              as.factor(rep(iters, each = (12 * 46))),
+                              rep(rep(trans, each = 46), 7))
+
+names(trans.dat) <- c("TransProb", "Age", "Iterations", "Transition")
+
+trans.plot <- trans.dat %>%
+  ggplot(aes(x = Age, y = TransProb, color = Iterations)) +
+  geom_line() +
+  facet_wrap(~ Transition, nrow = 4) +
+  labs(title = "Transition probabilities by maxiter", 
+       y = "Transition Probability")
+
+trans.plot.free <- trans.dat %>%
+  ggplot(aes(x = Age, y = TransProb, color = Iterations)) +
+  geom_line() +
+  facet_wrap(~ Transition, nrow = 4, scales = "free") +
+  labs(title = "Transition probabilities by maxiter", 
+       y = "Transition Probability")
+
+
+
+```
+
+First, a plot of all transitions with the y-axis ranging from 0 to 1 in each plot.
+
+```{r, fig.height = 8}
+
+trans.plot
+
+```
+
+Now, a plot of all transitions where the y-axes are specific to each transition.
+
+```{r, fig.height = 8}
+
+trans.plot.free
+
+```

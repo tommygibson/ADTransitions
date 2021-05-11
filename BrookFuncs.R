@@ -487,6 +487,32 @@ incidence.prevrate.f.uncond <- function(age, y = 2014, alpha = intalpha, int.yea
   
 }
 
+incidence.prevrate.m.uncond <- function(age, y = 2014, alpha = intalpha, int.year = 2014, mcid = 1.65, f = 1, k0, k1){
+  
+  # we go back to when they were 30 and multiply matrices from there
+  inc.multi <- vector(length = length(age))
+  phi.multi <- matrix(nrow = length(age), ncol = (death - 1))
+  n = max(age) - 30  
+  first = min(age)
+  y2 <- y - n - 1
+  prod <- list()
+  # prod object will contain the matrix products
+  prod[[1]] <- TP.m.ATN(30, y2, intalpha, int.year, mcid, f, k0, k1)
+  prev_curr <- vector(length = (death - 1))
+  for(i in 1:(n)){
+    prod[[i + 1]] <- (prod[[i]]) %*% TP.m.ATN(30 + i, y2 + i, intalpha, int.year, mcid, f, k0, k1)
+    if((i + 30 - first) >= 0){
+      inc.multi[(i + 30 - first + 1)] <- prev_curr[5] * TP.m.ATN(30 + i - 1, y2 + i - 1, alpha, int.year, mcid, f, k0, k1)[5, 10] /
+        sum(prev_curr[1:9])
+      phi.multi[(i + 30 - first + 1),] <- prod[[i + 1]][1, 1:(death - 1)]
+    }
+    prev_curr <- prod[[i + 1]][1, 1:(death - 1)] / sum(prod[[i + 1]][1, 1:(death - 1)])
+  }
+  prevrates <- (phi.multi / rowSums(phi.multi))[, c(1:4, 6:9)]
+  return(cbind(prevrates, inc.multi))
+  
+}
+
 
 
 

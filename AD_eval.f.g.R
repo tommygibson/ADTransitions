@@ -301,6 +301,7 @@ eval_f_logs_weighted <- function(x, r45, prevs, incidence, w){
   
 }
 
+
 eval_f_both_nologs <- function(x, r45, prevs, incidence){
   
   k0 <- matrix(0, nrow = 9, ncol = 10)
