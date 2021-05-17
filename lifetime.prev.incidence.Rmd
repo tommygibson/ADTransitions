@@ -25,11 +25,12 @@ source("BrookFuncs.R")
 load("lifetime.table.f.Rda")
 load("lifetime.table.m.Rda")
 
-avg.prev.opt <- readRDS("avg.prev.opt_05.05.2021.rds")
+avg.prev.opt <- readRDS("OptResults/simple.converged.rds")
 avg.prev.f <- make_prevplot_data_f(avg.prev.opt$solution)
 avg.inc.f <- make_incplot_data_f(avg.prev.opt$solution)
 avg.prev.m <- make_prevplot_data_m(avg.prev.opt$solution)
 avg.inc.m <- make_incplot_data_m(avg.prev.opt$solution)
+
 
 avg.uncond.plot.f <- ggplot(data = avg.prev.f, mapping = aes(x = Age, y = Prevalence_uncond)) + 
   geom_line(aes(color = Source)) + 
