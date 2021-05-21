@@ -1,7 +1,9 @@
 ---
 title: "Lifetime risk, prevalence, and incidence estimates from ATN model after optimzation"
 author: "Tommy Gibson"
-header-includes: \usepackage{setspace}\doublespacing
+header-includes: 
+  - \usepackage{setspace}\doublespacing
+  - \usepackage{float}
 date: "5/5/2021"
 output: bookdown::pdf_document2
 bibliography: ADTransitions.bib
@@ -26,39 +28,66 @@ knitr::include_graphics("AD_multistate.pdf")
 
 ## Data and notation
 
-We incorporate three sources of Alzheimer's disease (AD) dementia information into our analysis. These include age- and state-specific prevalence rates $Pc_i(a)$ [@jack2017], age-specific incidence rates of AD dementia $I(a)$ [@brookmeyer2007], and age-specific probabilities $C(a)$ of being in a preclinical state [@brookmeyer2019]. The prevalences $Pc_i(a)$ are conditional on being preclinical, i.e. no MCI has developed. The probabilities $C(a)$ were calculated using a multistate model for AD dementia using only the factors A, N, and MCI, which we refer to as the _AN model_.
+We incorporate three sources of Alzheimer's disease (AD) dementia information into our analysis. These include age- and state-specific conditional prevalence rates $Pc_i(a)$ [@jack2017], age-specific incidence rates $I(a)$ of AD dementia [@brookmeyer2007], and age-specific probabilities $C(a)$ of being in a preclinical state [@brookmeyer2019]. The prevalences $Pc_i(a)$ are conditional on being preclinical, i.e. no MCI has developed. The probabilities $C(a)$ were calculated using a multistate model for AD dementia using only the factors A, N, and MCI, which we refer to as the _AN model_.
 
 We will use the following notation throughout:
 
 - $r_{ij}(a)$ is the one-year transition probability of a person at age $a$ going from state $i$ to state $j$;
-- $Pc_i(a)$ is to the prevalence of state $i$ for individuals age $a, a = 50, \dots, 95$, conditional on being preclinical and alive[@jack2017], 
-- $Pu_i(a)$ is the prevalence of state $i$ for individuals age $a, a = 50, \dots, 95$, only conditional on being alive. These were calculated as $Pu_i(a) = Pc_i(a) * C(a)$, where $C(a)$ is the probability of being preclinical as calculated using the AN model [@brookmeyer2019];
+- $Pc_i(a)$ is to the prevalence of state $i$ for individuals age $a, a = 50, \dots, 95$, conditional on being preclinical and alive [@jack2017], 
+- $Pu_i(a)$ is the prevalence of state $i$ for individuals age $a, a = 50, \dots, 95$, conditional only on being alive. These were calculated as $Pu_i(a) = Pc_i(a) * C(a)$, where $C(a)$ is the probability of being preclinical as calculated using the AN model [@brookmeyer2019];
 - $I(a)$ is the incidence of AD dementia for individuals age $a, a = 65, \dots, 90$ [@brookmeyer2007]; its functional form is $I(a) = .00117\exp(0.126a)$.
-- $\boldsymbol{k}$ is the vector of all transition parameters $\boldsymbol{k} = (k_{012}, k_{112}, \dots, k_{05, 10}, k_{15, 10})$
 - $k_{0ij}$ and $k_{1ij}$ are transition parameters from state $i$ to state $j$ such that $r_{ij}(a) = k_{0ij}\exp(k_{1ij}a)$
-- $\widehat{Pc}_i(\boldsymbol{k}, a)$, $\widehat{Pu}_i(\boldsymbol{k}, a)$, and $\widehat{I}(\boldsymbol{k}, a)$, are estimates of these quantities from the multistate model for a given set of transition parameters $\boldsymbol{k}$ 
+- $\widehat{Pc}_i(\boldsymbol{k}, a)$, $\widehat{Pu}_i(\boldsymbol{k}, a)$, and $\widehat{I}(\boldsymbol{k}, a)$, are estimates of conditional prevalence rates, unconditional prevalence rates, and incidence rates of AD dementia from the multistate model for a given set of transition parameters $\boldsymbol{k}$ 
 
-## Estimating transition rate parameters $\boldsymbol{k}$
+## Optimizing transition rate parameters
 
-There are 14 total transitions $r_{ij}$, including 12 preclinical transitions,  $r_{45}$, and $r_{5, 10}$. We assume $r_{5, 10}(a) = 0.3$ for all ages $a$. To estimate the parameters $k_{045}$ and $k_{145}$ we first notice that 
+There are 14 total transitions $r_{ij}$, including 12 preclinical transitions $(r_{12}, \dots, r_{94})$,  $r_{45}$, and $r_{5, 10}$. Each transition has log-linear form $r_{ij}(a) = k_{0ij}\exp(k_{1ij}a)$, and we constrain each pair $(k_{0ij}, k_{1ij})$ with 
+\begin{equation}
+\begin{split}
+\log(k_{0ij}) < 0 \\
+k_{1ij} > 0 \\
+\log(k_{0ij}) + k_{1ij} \times 95 < 0
+\end{split}
+(\#eq:constraints)
+\end{equation}
+such that every transition $r_{ij}(a) \in (0, 1)$ for all ages $a \in (50, \dots, 95)$. 
+
+### Transitions $r_{45}$ $r_{5, 10}$
+
+We assume $r_{5, 10}(a) = 0.3$ for all ages $a$, i.e. $k_{05, 10} = 0.3$ and $k_{15, 10} = 0$. To estimate the parameters $k_{045}$ and $k_{145}$ we assume that 
 \begin{equation}
 r_{45}(a) = \lambda(a) \widetilde{r}_{45}(a), (\#eq:r45)
 \end{equation} 
-where $\lambda(a) = \frac{P_4(a)}{P_4(a) + P_9(a)}$ is the proportion of those with both A+N+ that also have T+, and $\widetilde{r}_{45}(a)$ is the transition from State 4 (A+N+) to State 5 (A+N+ MCI) __in the AN model__. The ATN model assumes that only those with A+T+N+ can develop MCI, so we assume that those transitioning to MCI in the AN model were only coming from the subpopulation of A+N+ subjects that also had T+. Having calculated $r_{45}(a)$ using \@ref(eq:r45), we assume a log-linear form and perform a simple optimization to find the parameters $k_{045}$ and $k_{145}$. 
+where $\lambda(a) = \frac{P_4(a)}{P_4(a) + P_9(a)}$ is the proportion of those with both A+N+ that also have T+, and $\widetilde{r}_{45}(a)$ is the transition from State 4 (A+N+) to State 5 (A+N+ MCI) __in the AN model__. The ATN model assumes that only those with A+T+N+ can develop MCI, so we assume that those transitioning to MCI in the AN model were only coming from the subpopulation of A+N+ subjects that also had T+. Having calculated $r_{45}(a)$ using \@ref(eq:r45), we assume a log-linear form and perform a simple constrained optimization to find the parameters $k_{045}$ and $k_{145}$ using the base `constrOptim` function in R. 
 
+### Preclinical Transitions
 
+Here we use $\boldsymbol{k}$ to represent the vector of 24 parameters $(\log(k_0), k_1)_{(ij)}$ for preclinical transitions $(r_{12}, \dots, r_{94})$. Optimization is with respect to the parameters $\boldsymbol{k}$. We use the COBYLA optimization algorithm in the R package `nloptr`, which accepts both linear and nonlinear constraints. In addition to the constraints \@ref(eq:constraints) we impose constraints such that the sum of transitions out of state $i$ for age $a$ is less than 1 up to age 95
+\begin{align}
+\log \big(\sum_{j \in R_i} \exp(\log(k_{0ij}) + k_{1ij} \times 95) \big) \le 0 \quad \forall i \in I
+\end{align}
+where $R_i$ is the set of states $j$ one can transition to out of state $i$ and $I = (1, 2, 3, 4, 6, 7, 8, 9)$ is the set of preclinical states.
 
+The loss function $f$ to be minimized has two components -- one for prevalence and one for incidence
+\begin{equation}
+f(\boldsymbol{k}) = \frac{1}{n_1} \sum_{a = 65}^{90} \Big(\log(\widehat{I}(\boldsymbol{k}, a)) - \log(I(a))\Big)^2 +  
+\frac{1}{n_2} \sum_{i \in I} \sum_{a = 50}^{95} \Big(\log(\widehat{Pu}_i(\boldsymbol{k}, a)) - \log(Pu_i(a))\Big)^2. 
+(\#eq:loss)
+\end{equation}
+where $n_1 = 26$ and $n_2 = 8 \times 46$ are the number of elements contributing to the incidence portion and prevalence portion of the loss function, respectively, and $I$ is the set of preclinical states. Because prevalence and incidence are on different scales, we use squared log-ratios instead of squared absolute differences. We weight each portion with the reciprocal of the number of contributing elements to give "equal" weight to the incidence and prevalence portions of the function. 
 
+# Results
 
 ## Lifetime Risks
 
-Let's first look at lifetime risks for males and females. 
+Tables \@ref(tab:lifetimef) and \@ref(tab:lifetimem) show the lifetime risks of developing AD dementia for women and men, respectively, for ages $a \in (60, 65, \dots, 90)$ and each pre-AD state $i \in (1, \dots, 9)$. 
 
 ```{r}
 
 library(ggplot2)
 library(tidyverse)
 library(knitr)
+library(kableExtra)
 
 source("AD_eval.f.g.R")
 source("BrookFuncs.R")
@@ -121,17 +150,19 @@ avg.inc.plot.m <- ggplot(avg.inc.m, mapping = aes(x = Age, y = Incidence, color 
 ```
 
 
-```{r}
+```{r lifetimef}
 
 
-kable(lifetime.table.f, caption = "Lifetime risk of AD for women by age and disease state")
+kable(lifetime.table.f, format = "latex", caption = "Lifetime risk of AD for women by age and disease state") %>%
+  kable_styling(latex_options = "HOLD_position")
 
 ```
 
 
-```{r}
+```{r lifetimem}
 
-kable(lifetime.table.m, caption = "Lifetime risk of AD for men by age and disease state")
+kable(lifetime.table.m, format = "latex", caption = "Lifetime risk of AD for men by age and disease state") %>%
+  kable_styling(latex_options = "HOLD_position")
 
 ```
 
@@ -141,13 +172,13 @@ kable(lifetime.table.m, caption = "Lifetime risk of AD for men by age and diseas
 
 Female and male prevalence rates, conditional on being alive and in a preclinical state. 
 
-```{r, fig.height = 7}
+```{r condf, fig.height = 7}
 
 avg.cond.plot.f
 
 ```
 
-```{r, fig.height = 7}
+```{r condm, fig.height = 7}
 
 avg.cond.plot.m
 
@@ -159,13 +190,13 @@ avg.cond.plot.m
 
 Female and male prevalence rates, conditional only on being alive. 
 
-```{r, fig.height = 7}
+```{r uncondf, fig.height = 7}
 
 avg.uncond.plot.f
 
 ```
 
-```{r, fig.height = 7}
+```{r uncondm, fig.height = 7}
 
 avg.uncond.plot.m
 
@@ -177,13 +208,13 @@ avg.uncond.plot.m
 
 Female and male incidence rates as compared with the empirically estimated rate. Note that the empirical rate is the same in each plot, as it is sex-agnostic. 
 
-```{r, fig.height = 7}
+```{r incf, fig.height = 7}
 
 avg.inc.plot.f
 
 ```
 
-```{r, fig.height = 7}
+```{r incm, fig.height = 7}
 
 avg.inc.plot.m
 
