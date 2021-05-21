@@ -1,13 +1,54 @@
 ---
 title: "Lifetime risk, prevalence, and incidence estimates from ATN model after optimzation"
 author: "Tommy Gibson"
+header-includes: \usepackage{setspace}\doublespacing
 date: "5/5/2021"
-output: pdf_document
+output: bookdown::pdf_document2
+bibliography: ADTransitions.bib
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, message = FALSE)
 ```
+
+
+
+# Methods
+
+A multistate model for Alzheimer's disease (AD) dementia using the dichotomous factors amyloidosis (A), tauopathy (T), neurodegeneration (N) and mild cognitive impairment (MCI) is shown in Figure \@ref(fig:multi). We refer to this model as the _ATN model_. The transitions $r_{ij}(a)$ are the one-year transition probabilities from state $i$ to state $j$, conditional on surviving to age $a + 1$. To calculate _lifetime risks_ of AD dementia, we estimate the transition rates $r_{ij}(a)$ using available information.
+
+```{r multi, fig.cap = "Multistate model for AD dementia with Amyloid (A+), Tauopathy (T+), Neurodegeneration (N+), and mild cognitive impairment (MCI)", fig.height = 4, fig.width = 6}
+
+knitr::include_graphics("AD_multistate.pdf")
+
+```
+
+
+## Data and notation
+
+We incorporate three sources of Alzheimer's disease (AD) dementia information into our analysis. These include age- and state-specific prevalence rates $Pc_i(a)$ [@jack2017], age-specific incidence rates of AD dementia $I(a)$ [@brookmeyer2007], and age-specific probabilities $C(a)$ of being in a preclinical state [@brookmeyer2019]. The prevalences $Pc_i(a)$ are conditional on being preclinical, i.e. no MCI has developed. The probabilities $C(a)$ were calculated using a multistate model for AD dementia using only the factors A, N, and MCI, which we refer to as the _AN model_.
+
+We will use the following notation throughout:
+
+- $r_{ij}(a)$ is the one-year transition probability of a person at age $a$ going from state $i$ to state $j$;
+- $Pc_i(a)$ is to the prevalence of state $i$ for individuals age $a, a = 50, \dots, 95$, conditional on being preclinical and alive[@jack2017], 
+- $Pu_i(a)$ is the prevalence of state $i$ for individuals age $a, a = 50, \dots, 95$, only conditional on being alive. These were calculated as $Pu_i(a) = Pc_i(a) * C(a)$, where $C(a)$ is the probability of being preclinical as calculated using the AN model [@brookmeyer2019];
+- $I(a)$ is the incidence of AD dementia for individuals age $a, a = 65, \dots, 90$ [@brookmeyer2007]; its functional form is $I(a) = .00117\exp(0.126a)$.
+- $\boldsymbol{k}$ is the vector of all transition parameters $\boldsymbol{k} = (k_{012}, k_{112}, \dots, k_{05, 10}, k_{15, 10})$
+- $k_{0ij}$ and $k_{1ij}$ are transition parameters from state $i$ to state $j$ such that $r_{ij}(a) = k_{0ij}\exp(k_{1ij}a)$
+- $\widehat{Pc}_i(\boldsymbol{k}, a)$, $\widehat{Pu}_i(\boldsymbol{k}, a)$, and $\widehat{I}(\boldsymbol{k}, a)$, are estimates of these quantities from the multistate model for a given set of transition parameters $\boldsymbol{k}$ 
+
+## Estimating transition rate parameters $\boldsymbol{k}$
+
+There are 14 total transitions $r_{ij}$, including 12 preclinical transitions,  $r_{45}$, and $r_{5, 10}$. We assume $r_{5, 10}(a) = 0.3$ for all ages $a$. To estimate the parameters $k_{045}$ and $k_{145}$ we first notice that 
+\begin{equation}
+r_{45}(a) = \lambda(a) \widetilde{r}_{45}(a), (\#eq:r45)
+\end{equation} 
+where $\lambda(a) = \frac{P_4(a)}{P_4(a) + P_9(a)}$ is the proportion of those with both A+N+ that also have T+, and $\widetilde{r}_{45}(a)$ is the transition from State 4 (A+N+) to State 5 (A+N+ MCI) __in the AN model__. The ATN model assumes that only those with A+T+N+ can develop MCI, so we assume that those transitioning to MCI in the AN model were only coming from the subpopulation of A+N+ subjects that also had T+. Having calculated $r_{45}(a)$ using \@ref(eq:r45), we assume a log-linear form and perform a simple optimization to find the parameters $k_{045}$ and $k_{145}$. 
+
+
+
+
 
 ## Lifetime Risks
 
@@ -147,3 +188,6 @@ avg.inc.plot.f
 avg.inc.plot.m
 
 ```
+
+
+## References
