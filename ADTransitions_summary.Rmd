@@ -1,16 +1,16 @@
 ---
-title: "Lifetime risk, prevalence, and incidence estimates from ATN model after optimzation"
+title: "Lifetime risks, prevalence, and incidence estimates from a multistate model for Alzheimer's disease"
 author: "Tommy Gibson"
 header-includes: 
   - \usepackage{setspace}\doublespacing
   - \usepackage{float}
-date: "5/5/2021"
+date: "5/21/2021"
 output: bookdown::pdf_document2
 bibliography: ADTransitions.bib
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, message = FALSE)
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 ```
 
 
@@ -25,7 +25,88 @@ knitr::include_graphics("AD_multistate.pdf")
 
 ```
 
+```{r}
 
+library(ggplot2)
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+
+source("AD_eval.f.g.R")
+source("BrookFuncs.R")
+
+load("lifetime.table.f.Rda")
+load("lifetime.table.m.Rda")
+
+avg.prev.opt <- readRDS("OptResults/simple.converged.rds")
+avg.prev.f <- make_prevplot_data_f(avg.prev.opt$solution)
+avg.inc.f <- make_incplot_data_f(avg.prev.opt$solution)
+avg.prev.m <- make_prevplot_data_m(avg.prev.opt$solution)
+avg.inc.m <- make_incplot_data_m(avg.prev.opt$solution)
+
+### total iterations, optimal value of objective function
+iter <- avg.prev.opt$iterations
+optval <- avg.prev.opt$objective
+
+### optimal parameters
+
+optparams <- as.data.frame(matrix(avg.prev.opt$solution, ncol = 2, byrow = TRUE))
+trans_names <- c("r12", "r16", "r18", "r23", "r29", "r34", "r63", "r67", "r74", "r87", "r89", "r94")
+
+colnames(optparams) <- c("log(k0)", "k1")
+rownames(optparams) <- trans_names
+
+### transition probabilities for each state
+
+alltrans <- make_transitions(Lk0_vec = optparams$`log(k0)`, k1_vec = optparams$`k1`)
+colnames(alltrans) <- trans_names
+
+
+trans.plot.dat <- cbind.data.frame(as.vector(alltrans),
+                                   rep(prev.ages, 12),
+                                   rep(trans_names, each = length(prev.ages)))
+
+names(trans.plot.dat) <- c("TransProb", "Age", "transition")
+
+
+transprob.plot <- ggplot(data = trans.plot.dat, mapping = aes(x = Age, y = TransProb)) +
+  geom_line(color = "deepskyblue1") + 
+  facet_wrap( ~ transition, nrow = 4) +
+  labs(title = "Transition probabilities for all 12 preclinical transitions",
+       y = "Transition Probability")
+
+### Prevalence and incidence plots
+
+avg.uncond.plot.f <- ggplot(data = avg.prev.f, mapping = aes(x = Age, y = Prevalence_uncond)) + 
+  geom_line(aes(color = Source)) + 
+  facet_wrap( ~ State, nrow = 4) +
+  scale_color_manual(values = c("deepskyblue1", "black")) +
+  labs(title = "Female Cross-sectional and Multistate Unconditional Prevalence",
+       y = "Female Unconditional Prevalence (proportion)")
+
+
+avg.inc.plot.f <- ggplot(avg.inc.f, mapping = aes(x = Age, y = Incidence, color = Source)) +
+  geom_line(size = .75) +
+  scale_color_manual(values = c("black", "deepskyblue1")) +
+  labs(title = "Female Empirical and Multistate Incidence of AD Dementia",
+       y = "Incidence (% per year)")
+
+avg.uncond.plot.m <- ggplot(data = avg.prev.m, mapping = aes(x = Age, y = Prevalence_uncond)) + 
+  geom_line(aes(color = Source)) + 
+  facet_wrap( ~ State, nrow = 4) +
+  scale_color_manual(values = c("deepskyblue1", "black")) +
+  labs(title = "Male Cross-sectional and Multistate Unconditional Prevalence",
+       y = "Unconditional Prevalence (proportion)")
+
+
+avg.inc.plot.m <- ggplot(avg.inc.m, mapping = aes(x = Age, y = Incidence, color = Source)) +
+  geom_line(size = .75) +
+  scale_color_manual(values = c("black", "deepskyblue1")) +
+  labs(title = "Male Empirical and Multistate Incidence of AD Dementia",
+       y = "Incidence (% per year)")
+
+
+```
 ## Data and notation
 
 We incorporate three sources of Alzheimer's disease (AD) dementia information into our analysis. These include age- and state-specific conditional prevalence rates $Pc_i(a)$ [@jack2017], age-specific incidence rates $I(a)$ of AD dementia [@brookmeyer2007], and age-specific probabilities $C(a)$ of being in a preclinical state [@brookmeyer2019]. The prevalences $Pc_i(a)$ are conditional on being preclinical, i.e. no MCI has developed. The probabilities $C(a)$ were calculated using a multistate model for AD dementia using only the factors A, N, and MCI, which we refer to as the _AN model_.
@@ -37,7 +118,10 @@ We will use the following notation throughout:
 - $Pu_i(a)$ is the prevalence of state $i$ for individuals age $a, a = 50, \dots, 95$, conditional only on being alive. These were calculated as $Pu_i(a) = Pc_i(a) * C(a)$, where $C(a)$ is the probability of being preclinical as calculated using the AN model [@brookmeyer2019];
 - $I(a)$ is the incidence of AD dementia for individuals age $a, a = 65, \dots, 90$ [@brookmeyer2007]; its functional form is $I(a) = .00117\exp(0.126a)$.
 - $k_{0ij}$ and $k_{1ij}$ are transition parameters from state $i$ to state $j$ such that $r_{ij}(a) = k_{0ij}\exp(k_{1ij}a)$
+- $\boldsymbol{k}$ is the vector of _preclinical_ transition rate parameters
 - $\widehat{Pc}_i(\boldsymbol{k}, a)$, $\widehat{Pu}_i(\boldsymbol{k}, a)$, and $\widehat{I}(\boldsymbol{k}, a)$, are estimates of conditional prevalence rates, unconditional prevalence rates, and incidence rates of AD dementia from the multistate model for a given set of transition parameters $\boldsymbol{k}$ 
+
+@jack2017 provides estimates of _sex-specific_ prevalence. The sex-specific functions $\widehat{Pu}_i(\boldsymbol{k}, a)$ from the multistate model output almost exactly the same values, so we take the average of the male and female prevalence estimates $Pu_i(a)$ and only use female prevalence and incidence functions in optimization.
 
 ## Optimizing transition rate parameters
 
@@ -62,7 +146,7 @@ where $\lambda(a) = \frac{P_4(a)}{P_4(a) + P_9(a)}$ is the proportion of those w
 
 ### Preclinical Transitions
 
-Here we use $\boldsymbol{k}$ to represent the vector of 24 parameters $(\log(k_0), k_1)_{(ij)}$ for preclinical transitions $(r_{12}, \dots, r_{94})$. Optimization is with respect to the parameters $\boldsymbol{k}$. We use the COBYLA optimization algorithm in the R package `nloptr`, which accepts both linear and nonlinear constraints. In addition to the constraints \@ref(eq:constraints) we impose constraints such that the sum of transitions out of state $i$ for age $a$ is less than 1 up to age 95
+Here we use $\boldsymbol{k}$ to represent the vector of 24 parameters $(\log(k_0), k_1)_{(ij)}$ for preclinical transitions $(r_{12}, \dots, r_{94})$. Optimization is with respect to the parameters $\boldsymbol{k}$. We use the COBYLA optimization algorithm [@cobyla] in the R package `nloptr` [@nloptr], which accepts both linear and nonlinear constraints. In addition to the constraints \@ref(eq:constraints) we impose constraints such that the sum of transitions out of state $i$ for age $a$ is less than 1 up to age 95
 \begin{align}
 \log \big(\sum_{j \in R_i} \exp(\log(k_{0ij}) + k_{1ij} \times 95) \big) \le 0 \quad \forall i \in I
 \end{align}
@@ -78,82 +162,25 @@ where $n_1 = 26$ and $n_2 = 8 \times 46$ are the number of elements contributing
 
 # Results
 
+The optimization algorithm converged after `r iter` iterations, with an optimal value of the loss function of `r optval`. Optimal values of parameters $(\log(k_{0ij}), k_{1ij})$ are shown in Table \@ref(tab:params). 
+
+```{r params}
+
+# parameter values
+kable(optparams, "simple", caption = "Optimal value of transition rate parameters") %>%
+  kable_styling(latex_options = "HOLD_position")
+
+```
+
 ## Lifetime Risks
 
 Tables \@ref(tab:lifetimef) and \@ref(tab:lifetimem) show the lifetime risks of developing AD dementia for women and men, respectively, for ages $a \in (60, 65, \dots, 90)$ and each pre-AD state $i \in (1, \dots, 9)$. 
 
-```{r}
-
-library(ggplot2)
-library(tidyverse)
-library(knitr)
-library(kableExtra)
-
-source("AD_eval.f.g.R")
-source("BrookFuncs.R")
-
-load("lifetime.table.f.Rda")
-load("lifetime.table.m.Rda")
-
-avg.prev.opt <- readRDS("OptResults/simple.converged.rds")
-avg.prev.f <- make_prevplot_data_f(avg.prev.opt$solution)
-avg.inc.f <- make_incplot_data_f(avg.prev.opt$solution)
-avg.prev.m <- make_prevplot_data_m(avg.prev.opt$solution)
-avg.inc.m <- make_incplot_data_m(avg.prev.opt$solution)
-
-
-avg.uncond.plot.f <- ggplot(data = avg.prev.f, mapping = aes(x = Age, y = Prevalence_uncond)) + 
-  geom_line(aes(color = Source)) + 
-  facet_wrap( ~ State, nrow = 4) +
-  scale_color_manual(values = c("deepskyblue1", "black")) +
-  labs(title = "Female Cross-sectional and Fitted Unconditional Prevalence",
-       y = "Female Unconditional Prevalence (proportion)")
-
-avg.cond.plot.f <- ggplot(data = avg.prev.f, mapping = aes(x = Age, y = Prevalence_cond)) +
-  geom_line(aes(color = Source)) + 
-  facet_wrap( ~ State, nrow = 4) +
-  scale_color_manual(values = c("deepskyblue1", "black")) +
-  labs(title = "Female Cross-sectional and Fitted Conditional Prevalence",
-       y = "Conditional Prevalence (proportion)") +
-  scale_y_continuous(breaks = seq(0, 1, 0.25))
-
-avg.inc.plot.f <- ggplot(avg.inc.f, mapping = aes(x = Age, y = Incidence, color = Source)) +
-  geom_line(size = .75) +
-  scale_color_manual(values = c("black", "deepskyblue1")) +
-  labs(title = "Female Empirical and Fitted Incidence of AD Dementia",
-       y = "Incidence (% per year)")
-
-avg.uncond.plot.m <- ggplot(data = avg.prev.m, mapping = aes(x = Age, y = Prevalence_uncond)) + 
-  geom_line(aes(color = Source)) + 
-  facet_wrap( ~ State, nrow = 4) +
-  scale_color_manual(values = c("deepskyblue1", "black")) +
-  labs(title = "Male Cross-sectional and Fitted Unconditional Prevalence",
-       y = "Unconditional Prevalence (proportion)")
-
-avg.cond.plot.m <- ggplot(data = avg.prev.m, mapping = aes(x = Age, y = Prevalence_cond)) +
-  geom_line(aes(color = Source)) + 
-  facet_wrap( ~ State, nrow = 4) +
-  scale_color_manual(values = c("deepskyblue1", "black")) +
-  labs(title = "Male Cross-sectional and Fitted Conditional Prevalence",
-       y = "Conditional Prevalence (proportion)") +
-  scale_y_continuous(breaks = seq(0, 1, 0.25))
-
-avg.inc.plot.m <- ggplot(avg.inc.m, mapping = aes(x = Age, y = Incidence, color = Source)) +
-  geom_line(size = .75) +
-  scale_color_manual(values = c("black", "deepskyblue1")) +
-  labs(title = "Male Empirical and Fitted Incidence of AD Dementia",
-       y = "Incidence (% per year)")
-
-
-
-
-```
-
 
 ```{r lifetimef}
 
-
-kable(lifetime.table.f, format = "latex", caption = "Lifetime risk of AD for women by age and disease state") %>%
+### female lifetime table 
+kable(lifetime.table.f, "simple", caption = "Lifetime risk of AD for women by age and disease state") %>%
   kable_styling(latex_options = "HOLD_position")
 
 ```
@@ -161,34 +188,18 @@ kable(lifetime.table.f, format = "latex", caption = "Lifetime risk of AD for wom
 
 ```{r lifetimem}
 
-kable(lifetime.table.m, format = "latex", caption = "Lifetime risk of AD for men by age and disease state") %>%
+# male lifetime table
+kable(lifetime.table.m, format = "simple", caption = "Lifetime risk of AD for men by age and disease state") %>%
   kable_styling(latex_options = "HOLD_position")
 
 ```
 
-\newpage 
-
-## Conditional Prevalence
-
-Female and male prevalence rates, conditional on being alive and in a preclinical state. 
-
-```{r condf, fig.height = 7}
-
-avg.cond.plot.f
-
-```
-
-```{r condm, fig.height = 7}
-
-avg.cond.plot.m
-
-```
 
 \newpage
 
 ## Unconditional prevalence
 
-Female and male prevalence rates, conditional only on being alive. 
+Figures \@ref{fig:uncondf} and \@ref{fig:uncondm} show the male and female prevalence estimates $\widehat{Pu}_i(a)$ as compared with $Pu_i(a)$. The plots mainly differ in $Pu_i(a)$, as the multistate functions for prevalence $\widehat{Pu}_i(a)$ are almost exactly equal.
 
 ```{r uncondf, fig.height = 7}
 
@@ -206,7 +217,7 @@ avg.uncond.plot.m
 
 ## Incidence of AD
 
-Female and male incidence rates as compared with the empirically estimated rate. Note that the empirical rate is the same in each plot, as it is sex-agnostic. 
+Female and male incidence rates as compared with the empirically estimated rate. The plots are nearly identical, as output from the multistate functions for incidence, $\widehat{I}(\boldsymbol{k}, a)$ are very close. 
 
 ```{r incf, fig.height = 7}
 
@@ -220,5 +231,13 @@ avg.inc.plot.m
 
 ```
 
+## Individual transitions $r_{ij}(a)$
 
-## References
+
+```{r transprob, fig.height = 8}
+
+transprob.plot
+
+```
+
+# References

@@ -477,7 +477,7 @@ make_incplot_data_f <- function(sol){
   
   dat.inc <- cbind.data.frame(c(inc, empirical.incidence),
                               rep(inc.ages, 2),
-                              rep(c("Fitted", "Empirical"), each = length(inc.ages)))
+                              rep(c("Multistate", "Target"), each = length(inc.ages)))
   
   names(dat.inc) <- c("Incidence", "Age", "Source")
   
@@ -512,11 +512,23 @@ make_incplot_data_m <- function(sol){
   
   dat.inc <- cbind.data.frame(c(inc, empirical.incidence),
                               rep(inc.ages, 2),
-                              rep(c("Fitted", "Empirical"), each = length(inc.ages)))
+                              rep(c("Multistate", "Target"), each = length(inc.ages)))
   
   names(dat.inc) <- c("Incidence", "Age", "Source")
   
   return(dat.inc)
+}
+
+make_transitions <- function(Lk0_vec, k1_vec){
+  ages <- 50:95
+  transitions <- matrix(nrow = length(ages), ncol = length(Lk0_vec))
+  
+  for(i in 1:length(Lk0_vec)){
+    transitions[,i] <- exp(Lk0_vec[i] + ages * k1_vec[i])
+  }
+  
+  return(transitions)
+  
 }
 
 
