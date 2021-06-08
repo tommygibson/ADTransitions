@@ -1,7 +1,8 @@
 ### Holds functions for optimization in nloptr
 ### 
 # setwd("/Users/Tommy/Desktop/Tommy/School/Grad School/Research/Research Brookmeyer/Code")
-source("BrookFuncs.R")
+library(here)
+source(here("BrookFuncs.R"))
 
 eval_f_prev <- function(x, r45, prevs){
   

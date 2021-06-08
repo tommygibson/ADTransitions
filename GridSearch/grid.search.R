@@ -48,7 +48,7 @@ for(i in 1:(a * a)){
                                          r45.params, avg_prev_u, incidence = empirical.incidence, w = 1)
   }
 }
-
+init.valid1 <- init.valid
 ###### the cobyla algorithm will sometimes take the parameter values outside
 ###### of the constraints, so this little precursor optimization accounts for that
 for(i in 1:(a * a)){
@@ -56,16 +56,16 @@ for(i in 1:(a * a)){
   if(init.valid[i] == 0) next
   else{
     opt.temp <- nloptr(x0 = rep(possible.inits[i,], 12), 
-                        eval_f = eval_f_logs_weighted, 
-                        lb = lb, ub = ub, 
-                        eval_g_ineq = eval_g_ineq_weighted,
-                        opts = list("algorithm"="NLOPT_LN_COBYLA",
-                                    "xtol_rel"=1e-3,
-                                    "maxeval"=10),
-                        r45 = r45.params,
-                        prevs = avg_prev_u,
-                        incidence = empirical.incidence,
-                        w = 1)
+                       eval_f = eval_f_logs_weighted, 
+                       lb = lb, ub = ub, 
+                       eval_g_ineq = eval_g_ineq_weighted,
+                       opts = list("algorithm"="NLOPT_LN_COBYLA",
+                                   "xtol_rel"=1e-3,
+                                   "maxeval"=10),
+                       r45 = r45.params,
+                       prevs = avg_prev_u,
+                       incidence = empirical.incidence,
+                       w = 1)
     if(is.nan(opt.temp$objective)){ 
       init.valid[i] <- 0
       init.loss[i] <- NA
@@ -81,19 +81,21 @@ for(i in 1:(a * a)){
   if(init.valid[i] == 0) next
   else{
     opts.grid[[index]] <- nloptr(x0 = rep(possible.inits[i,], 12), 
-                               eval_f = eval_f_logs_weighted, 
-                               lb = lb, ub = ub, 
-                               eval_g_ineq = eval_g_ineq_weighted,
-                               opts = list("algorithm"="NLOPT_LN_COBYLA",
-                                           "xtol_rel"=5e-3,
-                                           "maxeval"=15000),
-                               r45 = r45.params,
-                               prevs = avg_prev_u,
-                               incidence = empirical.incidence,
-                               w = 1)
+                                 eval_f = eval_f_logs_weighted, 
+                                 lb = lb, ub = ub, 
+                                 eval_g_ineq = eval_g_ineq_weighted,
+                                 opts = list("algorithm"="NLOPT_LN_COBYLA",
+                                             "xtol_rel"=5e-3,
+                                             "maxeval"=15000),
+                                 r45 = r45.params,
+                                 prevs = avg_prev_u,
+                                 incidence = empirical.incidence,
+                                 w = 1)
     index <- index + 1
   }
 }
+
+saveRDS(opts.grid, file = "grid.search/opts.grid.rds")
 
 #### Okay, we'll start with optimizing for 500 iterations, weed some out, 
 # then 1000 iterations, weed out again, yada yada

@@ -4,15 +4,16 @@
 ### Second component starts ~ line 260 and is AN model (Nada's old code)
 
 library(readxl)
+library(here)
 
 
 ##### data setup, known stuff
 ##### includes death rates, prevalence rates from jack (2017), incidence rates from meta-analysis
 # setwd("/Users/Tommy/Desktop/Tommy/School/Grad School/Research/Research Brookmeyer/Code")
-rates <- read.csv("U.S.mortality.rates.csv")
-jack_prev_men <- as.matrix(read_excel("ATN_estimates_rescaled.xlsx")[,c(1, 2, 6, 8, 9, 4, 5, 3, 7)])
+rates <- read.csv(here("U.S.mortality.rates.csv"))
+jack_prev_men <- as.matrix(read_excel(here("ATN_estimates_rescaled.xlsx"))[,c(1, 2, 6, 8, 9, 4, 5, 3, 7)])
 men_prev <- jack_prev_men[,-1] / 100
-jack_prev_fem <- as.matrix(read_excel("ATN_estimates_rescaled.xlsx")[,c(1, 10, 14, 16, 17, 12, 13, 11, 15)])
+jack_prev_fem <- as.matrix(read_excel(here("ATN_estimates_rescaled.xlsx"))[,c(1, 10, 14, 16, 17, 12, 13, 11, 15)])
 fem_prev <- jack_prev_fem[,-1] / 100
 avg_prev <- (fem_prev + men_prev) / 2
 
@@ -23,10 +24,10 @@ empirical.incidence <- 0.00117 * exp(0.126 * (inc.ages - 60)) * 100
 
 
 # trans.params <- read.csv("params.opt_01.26.2020.csv")[,-1]
-r45.params <- unlist(read.csv("params.r45.csv")[-1])
+r45.params <- unlist(read.csv(here("params.r45.csv"))[-1])
 r45.params[1] <- exp(r45.params[1])
 # p.preclinical <- as.vector(read.csv("prev.preclinical_03.01.2021.csv")[,2])
-p.preclinical <- as.vector(read.csv("prev.preclinical_03.15.2021.csv")[,2])
+p.preclinical <- as.vector(read.csv(here("prev.preclinical_03.15.2021.csv"))[,2])
 
 fem_prev_u <- p.preclinical * fem_prev
 men_prev_u <- p.preclinical * men_prev
