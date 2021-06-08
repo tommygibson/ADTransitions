@@ -49,7 +49,7 @@ k <- length(opts.grid[[1]]$solution)
 
 optvals <- vector(length = p)
 iters <- vector(length = p)
-params <- matrix(nrow = (k / 2 * p), ncol = 3)
+params <- as.data.frame(matrix(nrow = (k / 2 * p), ncol = 3))
 
 for(i in 1:p){
   optvals[i] <- opts.grid[[i]]$objective
@@ -61,22 +61,49 @@ for(i in 1:p){
   params[(1 + (i - 1) * (k / 2)):(i * k / 2), ] <- cbind(matrix(opts.grid[[i]]$solution, ncol = 2, byrow = TRUE), i)
 }
 
+colnames(params) <- c("Lk0", "k1", "init_set")
 ## which set of initial values produced the "optimal optimum"?
 
-optimal <- as.numeric(optvals == min(optvals))
+optimal <- optvals == min(optvals)
 opt.index <- which(optimal == 1)
 
 ##### Optimal parameters
 
-optparams <- matrix(params[, opt.index], ncol = 2, byrow = TRUE)
-colnames(optparams) <- c("log(k0)", "k1")
+optparams <- params %>%
+  filter(init_set == opt.index) %>%
+  select(c("Lk0", "k1"))
+
 rownames(optparams) <- rij
 
 ##### Data for all transitions
 
+# this one has age as rows, columns are 12 trans for each of 8 init sets
+transitions <- cbind.data.frame(as.vector(make_transitions(Lk0_vec = params$Lk0, k1_vec = params$k1)),
+                                rep(prev.ages, (k / 2 * p)),
+                                rep(rep(rij, each = (length(prev.ages)), p)),
+                                rep(1:(k / 2 * p), each = length(prev.ages)),
+                                rep(optimal, each = (k / 2 * length(prev.ages))))
+colnames(transitions) <- c("trans_prob", "age", "transition", "init_set", "optimal")
 
+r16 <- transitions %>%
+  filter(transition == 'r16')
 
+trans_fixed_scale <- transitions %>%
+  ggplot(aes(x = age, y = trans_prob, group = init_set)) +
+  geom_line(aes(color = optimal, size = optimal)) +
+  facet_wrap(~ transition, nrow = 4) +
+  scale_color_manual(values = c('grey', 'red')) +
+  scale_size_manual(values = c(0.5, 1)) +
+  labs(title = "Transition rates after optimization using different initial values",
+       y = "Transition probability", x = "Age") +
+  theme_bw()
 
+trans_free_scale <- transitions %>%
+  ggplot(aes(x = age, y = trans_prob, group = init_set)) +
+  geom_line(aes(color = optimal, alpha = optimal)) +
+  facet_wrap(~ transition, scales = 'free', nrow = 4) +
+  scale_color_manual(values = c('grey', 'red')) +
+  scale_alpha_manual(values = c(0.75, 1))
 
 
 
