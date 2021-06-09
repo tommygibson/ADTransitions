@@ -461,7 +461,7 @@ make_prevplot_data_f <- function(sol){
                                rep(prev.ages, 8 * 2),
                                rep(rep(c("Normal", "A+", "A+ T+", "A+ T+ N+",
                                          "T+", "T+ N+", "N+", "A+ N+"), each = length(prev.ages)), 2),
-                               rep(c("Fitted", "Jack"), each = length(prev.ages) * 8))
+                               rep(c("Multistate", "Jack"), each = length(prev.ages) * 8))
   
   names(dat.prev) <- c("Prevalence_uncond", "Prevalence_cond", "Age", "State", "Source")
   
@@ -478,7 +478,7 @@ make_incplot_data_f <- function(sol){
   
   dat.inc <- cbind.data.frame(c(inc, empirical.incidence),
                               rep(inc.ages, 2),
-                              rep(c("Multistate", "Target"), each = length(inc.ages)))
+                              rep(c("Multistate", "Empirical"), each = length(inc.ages)))
   
   names(dat.inc) <- c("Incidence", "Age", "Source")
   
@@ -496,7 +496,7 @@ make_prevplot_data_m <- function(sol){
                                rep(prev.ages, 8 * 2),
                                rep(rep(c("Normal", "A+", "A+ T+", "A+ T+ N+",
                                          "T+", "T+ N+", "N+", "A+ N+"), each = length(prev.ages)), 2),
-                               rep(c("Fitted", "Jack"), each = length(prev.ages) * 8))
+                               rep(c("Multistate", "Jack"), each = length(prev.ages) * 8))
   
   names(dat.prev) <- c("Prevalence_uncond", "Prevalence_cond", "Age", "State", "Source")
   
@@ -513,7 +513,7 @@ make_incplot_data_m <- function(sol){
   
   dat.inc <- cbind.data.frame(c(inc, empirical.incidence),
                               rep(inc.ages, 2),
-                              rep(c("Multistate", "Target"), each = length(inc.ages)))
+                              rep(c("Multistate", "Empirical"), each = length(inc.ages)))
   
   names(dat.inc) <- c("Incidence", "Age", "Source")
   
