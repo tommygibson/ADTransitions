@@ -140,7 +140,8 @@ incplot <- inc.consolidated %>%
   scale_alpha_manual(values = c(0.25, 1)) +
   scale_linetype_manual(values = c(2, 1)) +
   guides(alpha = FALSE) +
-  labs(title = "Figure 3: Optimized and Empirical Target") +
+  labs(title = "Figure 3: Optimized and Empirical Incidence Rates",
+       y = "Incidence (% per year)") +
   theme_bw()
   
 
@@ -206,12 +207,12 @@ kable(optparams, digits = 3, caption = "Optimal parameter values", format = 'sim
 
 The figures below show the transition probabilities for every transition $r_{ij}(a)$ for ages $a \in (50, \dots, 95)$. Figure 1 has all y-axes fixed from 0 to 1, while Figure 1 has scales unique to each panel. The red line in each panel corresponds to transition probabilities for the optimal parameters in Table \@ref(tab:optparams).
 
-```{r transfixed}
+```{r transfixed, fig.height = 9}
 trans_fixed
 ```
 
 
-```{r transfree}
+```{r transfree, fig.height = 9}
 trans_free
 ```
 

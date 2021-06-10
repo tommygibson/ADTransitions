@@ -74,6 +74,7 @@ for(i in 1:(a * a)){
   
 }
 
+valids <- which(init.valid == 1)
 opts.grid <- list()
 
 index <- 1
@@ -86,7 +87,7 @@ for(i in 1:(a * a)){
                                  eval_g_ineq = eval_g_ineq_weighted,
                                  opts = list("algorithm"="NLOPT_LN_COBYLA",
                                              "xtol_rel"=5e-3,
-                                             "maxeval"=15000),
+                                             "maxeval"=40000),
                                  r45 = r45.params,
                                  prevs = avg_prev_u,
                                  incidence = empirical.incidence,
@@ -95,7 +96,8 @@ for(i in 1:(a * a)){
   }
 }
 
-saveRDS(opts.grid, file = "grid.search/opts.grid.rds")
+
+saveRDS(opts.grid, file = 'GridSearch/opts.grid.rds')
 
 #### Okay, we'll start with optimizing for 500 iterations, weed some out, 
 # then 1000 iterations, weed out again, yada yada

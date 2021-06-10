@@ -27,7 +27,8 @@ empirical.incidence <- 0.00117 * exp(0.126 * (inc.ages - 60)) * 100
 r45.params <- unlist(read.csv(here("params.r45.csv"))[-1])
 r45.params[1] <- exp(r45.params[1])
 # p.preclinical <- as.vector(read.csv("prev.preclinical_03.01.2021.csv")[,2])
-p.preclinical <- as.vector(read.csv(here("prev.preclinical_03.15.2021.csv"))[,2])
+# p.preclinical <- as.vector(read.csv(here("prev.preclinical_03.15.2021.csv"))[,2])
+p.preclinical <- as.vector(read.csv(here("prev.preclinical_06.10.2021.csv"))[,2])
 
 fem_prev_u <- p.preclinical * fem_prev
 men_prev_u <- p.preclinical * men_prev
@@ -683,7 +684,7 @@ TP.f.AN <- function(a, y, alpha, int.year, mcid, f, k0, k1, k012, k112, k12){
     for(j in 1:7){
       if(i < j){
         if(a < 65){
-          p[i, j] < -alpha[i, j] * k0[i, j] * exp(k1[i, j] * a) * (1 - dr.f(a, y, f))}
+          p[i, j] <- alpha[i, j] * k0[i, j] * exp(k1[i, j] * a) * (1 - dr.f(a, y, f))}
         else if(65 <= a & a <= 75){
           p[1, 2] <- alpha[1, 2] * k012 * exp(k112 * a) * (1 - dr.f(a, y, f))
           p[i, j] <- alpha[i, j] * k0[i, j] * exp(k1[i, j] * a) * (1 - dr.f(a, y, f))
@@ -769,6 +770,7 @@ TP.m.AN <- function(a, y, alpha, int.year, mcid, f, k0, k1, k012, k112, k12){
 
 #### These aren't really used but here they are
 Phi.f.AN <- function(a, y, alpha, int.year, mcid, f, k0, k1, k012, k112, k12){
+  prod <- list()
   n = a - 30  
   y2 <- y - n - 1
   for(i in 1:(n)){
@@ -779,6 +781,7 @@ Phi.f.AN <- function(a, y, alpha, int.year, mcid, f, k0, k1, k012, k112, k12){
 }
 
 Phi.m.AN <- function(a, y, alpha, int.year, mcid, f, k0, k1, k012, k112, k12){
+  prod <- list()
   n = a - 30  
   y2 <- y - n - 1
   for(i in 1:(n)){
@@ -789,13 +792,13 @@ Phi.m.AN <- function(a, y, alpha, int.year, mcid, f, k0, k1, k012, k112, k12){
 }
 
 Prevrate.f.AN <- function(a, y, alpha, int.year, mcid, f, k0, k1, k012, k112, k12){
-  phi = Phi.f(a, y, alpha, int.year, mcid, f, k0, k1, k012, k112, k12)
+  phi = Phi.f.AN(a, y, alpha, int.year, mcid, f, k0, k1, k012, k112, k12)
   prevalence <- phi / sum(phi)
   return(c(prevalence))
 }
 
 Prevrate.m.AN <- function(a, y, alpha, int.year, mcid, f, k0, k1, k012, k112, k12){
-  phi = Phi.m(a, y, alpha, int.year, mcid, f, k0, k1, k012, k112, k12)
+  phi = Phi.m.AN(a, y, alpha, int.year, mcid, f, k0, k1, k012, k112, k12)
   prevalence <- phi / sum(phi)
   return(c(prevalence))
 }
