@@ -115,7 +115,7 @@ We will use the following notation throughout:
 
 - $r_{ij}(a)$ is the one-year transition probability of a person at age $a$ going from state $i$ to state $j$;
 - $Pc_i(a)$ is to the prevalence of state $i$ for individuals age $a, a = 50, \dots, 95$, conditional on being preclinical and alive [@jack2017], 
-- $Pu_i(a)$ is the prevalence of state $i$ for individuals age $a, a = 50, \dots, 95$, conditional only on being alive. These were calculated as $Pu_i(a) = Pc_i(a) * C(a)$, where $C(a)$ is the probability of being preclinical as calculated using the AN model [@brookmeyer2019];
+- $Pu_i(a)$ is the prevalence of state $i$ for individuals age $a, a = 50, \dots, 95$, conditional only on being alive. These were calculated as $Pu_i(a) = Pc_i(a) * C(a)$, where $C(a)$ is the probability of being preclinical as calculated using the AN model [@brookmeyer2019]. For example, preclinical probabilities $C(a)$ for $a = (60, 70, 80, 90)$ are $(0.994, 0.967, 0.836, 0.466)$
 - $I(a)$ is the incidence of AD dementia for individuals age $a, a = 65, \dots, 90$ [@brookmeyer2007]; its functional form is $I(a) = .00117\exp(0.126a)$.
 - $k_{0ij}$ and $k_{1ij}$ are transition parameters from state $i$ to state $j$ such that $r_{ij}(a) = k_{0ij}\exp(k_{1ij}a)$
 - $\boldsymbol{k}$ is the vector of _preclinical_ transition rate parameters
@@ -142,7 +142,7 @@ We assume $r_{5, 10}(a) = 0.3$ for all ages $a$, i.e. $k_{05, 10} = 0.3$ and $k_
 \begin{equation}
 r_{45}(a) = \lambda(a) \widetilde{r}_{45}(a), (\#eq:r45)
 \end{equation} 
-where $\lambda(a) = \frac{P_4(a)}{P_4(a) + P_9(a)}$ is the proportion of those with both A+N+ that also have T+, and $\widetilde{r}_{45}(a)$ is the transition from State 4 (A+N+) to State 5 (A+N+ MCI) __in the AN model__. The ATN model assumes that only those with A+T+N+ can develop MCI, so we assume that those transitioning to MCI in the AN model were only coming from the subpopulation of A+N+ subjects that also had T+. Having calculated $r_{45}(a)$ using \@ref(eq:r45), we assume a log-linear form and perform a simple constrained optimization to find the parameters $k_{045}$ and $k_{145}$ using the base `constrOptim` function in R. 
+where $\lambda(a) = \frac{P_4(a)}{P_4(a) + P_9(a)}$ is the proportion of those with both A+N+ that also have T+, and $\widetilde{r}_{45}(a) = 2.5958 \cdot 10^{-5} \exp(0.0962 \cdot a)$ is the transition from State 4 (A+N+) to State 5 (A+N+ MCI) __in the AN model__. The ATN model assumes that only those with A+T+N+ can develop MCI, so we assume that those transitioning to MCI in the AN model were only coming from the subpopulation of A+N+ subjects that also had T+. Having calculated $r_{45}(a)$ using \@ref(eq:r45), we assume a log-linear form and perform a simple constrained optimization to find the parameters $k_{045}$ and $k_{145}$ using the base `constrOptim` function in R. 
 
 ### Preclinical Transitions
 
@@ -159,6 +159,10 @@ f(\boldsymbol{k}) = \frac{1}{n_1} \sum_{a = 65}^{90} \Big(\log(\widehat{I}(\bold
 (\#eq:loss)
 \end{equation}
 where $n_1 = 26$ and $n_2 = 8 \times 46$ are the number of elements contributing to the incidence portion and prevalence portion of the loss function, respectively, and $I$ is the set of preclinical states. Because prevalence and incidence are on different scales, we use squared log-ratios instead of squared absolute differences. We weight each portion with the reciprocal of the number of contributing elements to give "equal" weight to the incidence and prevalence portions of the function. 
+
+#### Grid Search
+
+
 
 # Results
 
