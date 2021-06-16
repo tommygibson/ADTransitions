@@ -96,6 +96,24 @@ for(i in valids){
 
 saveRDS(opts.grid, file = 'GridSearch/opts.grid.rds')
 
+#### Opt where we don't take jack data from ages 91-95
+
+opts.grid.90 <- list()
+index <- 1
+for(i in valids){
+  opts.grid.90[[index]] <- nloptr(x0 = rep(possible.inits[i,], 12), 
+                               eval_f = eval_f_logs_weighted_90, 
+                               lb = lb, ub = ub, 
+                               eval_g_ineq = eval_g_ineq_weighted,
+                               opts = list("algorithm"="NLOPT_LN_COBYLA",
+                                           "xtol_rel"=5e-3,
+                                           "maxeval"=20000),
+                               r45 = r45.params,
+                               prevs = avg_prev_u[1:41,],
+                               incidence = empirical.incidence,
+                               w = 1)
+  index <- index + 1
+}
 
 #### Trying the ISRES algorithm again
 

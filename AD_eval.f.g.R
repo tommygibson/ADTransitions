@@ -302,8 +302,13 @@ eval_f_logs_weighted <- function(x, r45, prevs, incidence, w){
   
 }
 
-
-eval_f_both_nologs <- function(x, r45, prevs, incidence){
+eval_f_logs_weighted_90 <- function(x, r45, prevs, incidence, w){
+  
+  w1 <- 1 / (1 + w)
+  w2 <- w / (1 + w)
+  
+  n1 <- length(prevs)
+  n2 <- length(incidence) 
   
   k0 <- matrix(0, nrow = 9, ncol = 10)
   k1 <- matrix(0, nrow = 9, ncol = 10)
@@ -349,18 +354,17 @@ eval_f_both_nologs <- function(x, r45, prevs, incidence){
   k0[9, 4] <- x[23]
   k1[9, 4] <- x[24]
   
-  prev.inc <- incidence.prevrate.f.uncond(age = 50:95, y = 2014, alpha = intalpha, int.year = 2014, mcid = 1.65, f = 1, 
+  prev.inc <- incidence.prevrate.f.uncond(age = 50:90, y = 2014, alpha = intalpha, int.year = 2014, mcid = 1.65, f = 1, 
                                           k0 = k0, k1 = k1)
   
   # sums of squares for prevalences
-  sumsquare.prev <- sum((prev.inc[, 1:8] - prevs) ^ 2)
+  sumsquare.prev <- w1 * (1 / n1) * sum((log(prev.inc[, 1:8] + 1e-4) - log(prevs + 1e-4)) ^ 2)
   # sums of squares for log(incidence), only ages 65:90
-  sumsquare.inc <- sum((prev.inc[16:41, 9] * 100 - incidence) ^ 2)
+  sumsquare.inc <- w2 * (1 / n2) * sum((log(prev.inc[16:41, 9] * 100) - log(incidence)) ^ 2)
   
   return(sumsquare.prev + sumsquare.inc)
   
 }
-
 
 ###### Inequality constraints (each element of "constraints" should be < 0)
 # last four constraints are on sum of transitions out of 1, 2, 6, 8
