@@ -115,6 +115,8 @@ for(i in valids){
   index <- index + 1
 }
 
+saveRDS(opts.grid.90, file = "GridSearch/opts.grid.50-90.rds")
+
 #### Trying the ISRES algorithm again
 
 opt.isres <- nloptr(x0 = rep(possible.inits[8,], 12), 
@@ -196,30 +198,30 @@ opt.isres <- nloptr(x0 = rep(possible.inits[8,], 12),
 
 ##### OBJECTIVE FUNCTION VALUES
 
-obj.500 <- obj.1000 <- obj.2000 <- vector(length = length(opts.500))
-
-
-for(i in 1:length(opts.500)){
-  obj.500[i] <- opts.500[[i]]$objective
-  obj.1000[i] <- opts.1000[[i]]$objective
-  obj.2000[i] <- opts.2000[[i]]$objective
-}
-
-## make a pretty plot
-obj.prog <- cbind.data.frame(c(init.loss[!is.na(init.loss)], obj.500, obj.1000, obj.2000),
-                             rep(c(0, 500, 1000, 2000), each = sum(!is.na(init.loss))),
-                             rep(1:sum(init.valid), 4))
-
-names(obj.prog) <- c("Objective", "Iterations", "Init Set")
-
-obj.prog %>%
-  ggplot(aes(x = Iterations, y = Objective, group = `Init Set`)) +
-  geom_point() +
-  geom_line() +
-  theme_bw() +
-  scale_y_continuous(trans = "log2") +
-  labs(title = "Convergence of COBYLA algorithm for multiple sets of initial values",
-       y = "Objective function (log scale)") +
-  scale_x_continuous(breaks = c(0, 500, 1000, 2000))
+# obj.500 <- obj.1000 <- obj.2000 <- vector(length = length(opts.500))
+# 
+# 
+# for(i in 1:length(opts.500)){
+#   obj.500[i] <- opts.500[[i]]$objective
+#   obj.1000[i] <- opts.1000[[i]]$objective
+#   obj.2000[i] <- opts.2000[[i]]$objective
+# }
+# 
+# ## make a pretty plot
+# obj.prog <- cbind.data.frame(c(init.loss[!is.na(init.loss)], obj.500, obj.1000, obj.2000),
+#                              rep(c(0, 500, 1000, 2000), each = sum(!is.na(init.loss))),
+#                              rep(1:sum(init.valid), 4))
+# 
+# names(obj.prog) <- c("Objective", "Iterations", "Init Set")
+# 
+# obj.prog %>%
+#   ggplot(aes(x = Iterations, y = Objective, group = `Init Set`)) +
+#   geom_point() +
+#   geom_line() +
+#   theme_bw() +
+#   scale_y_continuous(trans = "log2") +
+#   labs(title = "Convergence of COBYLA algorithm for multiple sets of initial values",
+#        y = "Objective function (log scale)") +
+#   scale_x_continuous(breaks = c(0, 500, 1000, 2000))
 
 
