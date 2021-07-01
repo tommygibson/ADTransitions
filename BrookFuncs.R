@@ -142,6 +142,100 @@ make_trans_matrix <- function(x, r45){
   return(list(k0, k1))
 }
 
+make_trans_matrix_high <- function(x, r45){
+  k0 <- matrix(0, nrow = 9, ncol = 10)
+  k1 <- matrix(0, nrow = 9, ncol = 10)
+  
+  x[seq(1, 23, 2)] <- exp(x[seq(1, 23, 2)])
+  # from state 1
+  k0[1, 2] <- x[1]
+  k1[1, 2] <- x[2]
+  k0[1, 6] <- x[3]
+  k1[1, 6] <- x[4]
+  k0[1, 8] <- x[5]
+  k1[1, 8] <- x[6]
+  # state 2
+  k0[2, 3] <- x[7]
+  k1[2, 3] <- x[8]
+  k0[2, 9] <- x[9]
+  k1[2, 9] <- x[10]
+  # state 3
+  k0[3, 4] <- x[11]
+  k1[3, 4] <- x[12]
+  # state 4 (from separate estimation)
+  k0[4, 5] <- 1.65 * r45[1]
+  k1[4, 5] <- r45[2]
+  # state 5
+  k0[5, 10] <- 0.34
+  k1[5, 10] <- 0
+  # state 6
+  k0[6, 3] <- x[13]
+  k1[6, 3] <- x[14]
+  k0[6, 7] <- x[15]
+  k1[6, 7] <- x[16]
+  # state 7
+  k0[7, 4] <- x[17]
+  k1[7, 4] <- x[18]
+  # state 8
+  k0[8, 7] <- x[19]
+  k1[8, 7] <- x[20]
+  k0[8, 9] <- x[21]
+  k1[8, 9] <- x[22]
+  # state 9
+  k0[9, 4] <- x[23]
+  k1[9, 4] <- x[24]
+  
+  return(list(k0, k1))
+}
+
+make_trans_matrix_low <- function(x, r45){
+  k0 <- matrix(0, nrow = 9, ncol = 10)
+  k1 <- matrix(0, nrow = 9, ncol = 10)
+  
+  x[seq(1, 23, 2)] <- exp(x[seq(1, 23, 2)])
+  # from state 1
+  k0[1, 2] <- x[1]
+  k1[1, 2] <- x[2]
+  k0[1, 6] <- x[3]
+  k1[1, 6] <- x[4]
+  k0[1, 8] <- x[5]
+  k1[1, 8] <- x[6]
+  # state 2
+  k0[2, 3] <- x[7]
+  k1[2, 3] <- x[8]
+  k0[2, 9] <- x[9]
+  k1[2, 9] <- x[10]
+  # state 3
+  k0[3, 4] <- x[11]
+  k1[3, 4] <- x[12]
+  # state 4 (from separate estimation)
+  k0[4, 5] <- 0.66 * r45[1]
+  k1[4, 5] <- r45[2]
+  # state 5
+  k0[5, 10] <- 0.26
+  k1[5, 10] <- 0
+  # state 6
+  k0[6, 3] <- x[13]
+  k1[6, 3] <- x[14]
+  k0[6, 7] <- x[15]
+  k1[6, 7] <- x[16]
+  # state 7
+  k0[7, 4] <- x[17]
+  k1[7, 4] <- x[18]
+  # state 8
+  k0[8, 7] <- x[19]
+  k1[8, 7] <- x[20]
+  k0[8, 9] <- x[21]
+  k1[8, 9] <- x[22]
+  # state 9
+  k0[9, 4] <- x[23]
+  k1[9, 4] <- x[24]
+  
+  return(list(k0, k1))
+}
+
+
+
 simple.params <- rep(c(log(.0008), .06), 12)
 simple.matrices <- make_trans_matrix(simple.params, r45.params)
 

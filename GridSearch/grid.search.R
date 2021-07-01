@@ -75,23 +75,84 @@ for(i in 1:(a * a)){
 }
 
 valids <- which(init.valid == 1)
-opts.grid <- list()
 
-index <- 1
-for(i in valids){
-  opts.grid[[index]] <- nloptr(x0 = rep(possible.inits[i,], 12), 
-                               eval_f = eval_f_logs_weighted, 
-                               lb = lb, ub = ub, 
-                               eval_g_ineq = eval_g_ineq_weighted,
-                               opts = list("algorithm"="NLOPT_LN_COBYLA",
-                                           "xtol_rel"=5e-3,
-                                           "maxeval"=40000),
-                               r45 = r45.params,
-                               prevs = avg_prev_u,
-                               incidence = empirical.incidence,
-                               w = 1)
-  index <- index + 1
+# opt with more stringent convergence criteria
+# opts.grid.e1 <- list()
+# 
+# index <- 1
+# for(i in valids[c(1, 4, 5, 8)]){
+#   opts.grid.e1[[index]] <- nloptr(x0 = rep(possible.inits[i,], 12),
+#                                eval_f = eval_f_logs_weighted,
+#                                lb = lb, ub = ub,
+#                                eval_g_ineq = eval_g_ineq_weighted,
+#                                opts = list("algorithm"="NLOPT_LN_COBYLA",
+#                                            "xtol_rel"=1e-3,
+#                                            "maxeval"=40000),
+#                                r45 = r45.params,
+#                                prevs = avg_prev_u,
+#                                incidence = empirical.incidence,
+#                                w = 1)
+#   index <- index + 1
+# }
+# opts.grid.e1[[2]] <- nloptr(x0 = rep(possible.inits[valids[8],], 12),
+#                                 eval_f = eval_f_logs_weighted,
+#                                 lb = lb, ub = ub,
+#                                 eval_g_ineq = eval_g_ineq_weighted,
+#                                 opts = list("algorithm"="NLOPT_LN_COBYLA",
+#                                             "xtol_rel"=1e-3,
+#                                             "maxeval"=40000),
+#                                 r45 = r45.params,
+#                                 prevs = avg_prev_u,
+#                                 incidence = empirical.incidence,
+#                                 w = 1)
+# 
+# saveRDS(opts.grid.e1, file = "GridSearch/opts.grid.e1.rds")
+
+tab.ages <- seq(60, 90, 5)
+e1.mats <- make_trans_matrix_low(opts.grid.e1[[1]]$solution, r45 = r45.params)
+
+lifetime.table.f <- as.data.frame(matrix(nrow = length(tab.ages), ncol = 10))
+lifetime.table.m <- as.data.frame(matrix(nrow = length(tab.ages), ncol = 10))
+
+lifetime.table.f[,1] <- lifetime.table.m[,1] <- tab.ages
+
+
+for(i in 1:length(tab.ages)){
+  for(j in 1:9){
+    
+    curr.f <- lifetime(age = tab.ages[i], g = "Female", state = j, k0 = e1.mats[[1]], k1 = e1.mats[[2]])
+    curr.m <- lifetime(age = tab.ages[i], g = "Male", state = j, k0 = e1.mats[[1]], k1 = e1.mats[[2]])
+    
+    lifetime.table.f[i, (j + 1)] <- curr.f[1]
+    lifetime.table.m[i, (j + 1)] <- curr.m[1]
+    
+  }
 }
+
+colnames(lifetime.table.f) <- colnames(lifetime.table.m) <- c("Age", "Normal", "A", "A+T", "A+T+N",
+                                                              "A+T+N + MCI", "T", "T+N", "N", "A+N")
+
+lifetime.e1 <- list(lifetime.table.f, lifetime.table.m)
+names(lifetime.e1) <- c("f", "m")
+saveRDS(lifetime.e1, "GridSearch/lifetime.optimal.rds")
+
+# opts.grid <- list()
+# 
+# index <- 1
+# for(i in valids){
+#   opts.grid[[index]] <- nloptr(x0 = rep(possible.inits[i,], 12), 
+#                                eval_f = eval_f_logs_weighted, 
+#                                lb = lb, ub = ub, 
+#                                eval_g_ineq = eval_g_ineq_weighted,
+#                                opts = list("algorithm"="NLOPT_LN_COBYLA",
+#                                            "xtol_rel"=5e-3,
+#                                            "maxeval"=40000),
+#                                r45 = r45.params,
+#                                prevs = avg_prev_u,
+#                                incidence = empirical.incidence,
+#                                w = 1)
+#   index <- index + 1
+# }
 
 
 saveRDS(opts.grid, file = 'GridSearch/opts.grid.rds')

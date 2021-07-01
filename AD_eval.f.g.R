@@ -302,6 +302,134 @@ eval_f_logs_weighted <- function(x, r45, prevs, incidence, w){
   
 }
 
+eval_f_logs_weighted_high <- function(x, r45, prevs, incidence, w){
+  
+  w1 <- 1 / (1 + w)
+  w2 <- w / (1 + w)
+  
+  n1 <- length(prevs)
+  n2 <- length(incidence) 
+  
+  k0 <- matrix(0, nrow = 9, ncol = 10)
+  k1 <- matrix(0, nrow = 9, ncol = 10)
+  
+  
+  x[seq(1, 23, 2)] <- exp(x[seq(1, 23, 2)])
+  
+  # from state 1
+  k0[1, 2] <- x[1]
+  k1[1, 2] <- x[2]
+  k0[1, 6] <- x[3]
+  k1[1, 6] <- x[4]
+  k0[1, 8] <- x[5]
+  k1[1, 8] <- x[6]
+  # state 2
+  k0[2, 3] <- x[7]
+  k1[2, 3] <- x[8]
+  k0[2, 9] <- x[9]
+  k1[2, 9] <- x[10]
+  # state 3
+  k0[3, 4] <- x[11]
+  k1[3, 4] <- x[12]
+  # state 4 (from separate estimation)
+  k0[4, 5] <- 1.65 * r45[1]
+  k1[4, 5] <- r45[2]
+  # state 5
+  k0[5, 10] <- 0.34
+  k1[5, 10] <- 0
+  # state 6
+  k0[6, 3] <- x[13]
+  k1[6, 3] <- x[14]
+  k0[6, 7] <- x[15]
+  k1[6, 7] <- x[16]
+  # state 7
+  k0[7, 4] <- x[17]
+  k1[7, 4] <- x[18]
+  # state 8
+  k0[8, 7] <- x[19]
+  k1[8, 7] <- x[20]
+  k0[8, 9] <- x[21]
+  k1[8, 9] <- x[22]
+  # state 9
+  k0[9, 4] <- x[23]
+  k1[9, 4] <- x[24]
+  
+  prev.inc <- incidence.prevrate.f.uncond(age = 50:95, y = 2014, alpha = intalpha, int.year = 2014, mcid = 1.65, f = 1, 
+                                          k0 = k0, k1 = k1)
+  
+  # sums of squares for prevalences
+  sumsquare.prev <- w1 * (1 / n1) * sum((log(prev.inc[, 1:8] + 1e-4) - log(prevs + 1e-4)) ^ 2)
+  # sums of squares for log(incidence), only ages 65:90
+  sumsquare.inc <- w2 * (1 / n2) * sum((log(prev.inc[16:41, 9] * 100) - log(incidence)) ^ 2)
+  
+  return(sumsquare.prev + sumsquare.inc)
+  
+}
+
+eval_f_logs_weighted_low <- function(x, r45, prevs, incidence, w){
+  
+  w1 <- 1 / (1 + w)
+  w2 <- w / (1 + w)
+  
+  n1 <- length(prevs)
+  n2 <- length(incidence) 
+  
+  k0 <- matrix(0, nrow = 9, ncol = 10)
+  k1 <- matrix(0, nrow = 9, ncol = 10)
+  
+  
+  x[seq(1, 23, 2)] <- exp(x[seq(1, 23, 2)])
+  
+  # from state 1
+  k0[1, 2] <- x[1]
+  k1[1, 2] <- x[2]
+  k0[1, 6] <- x[3]
+  k1[1, 6] <- x[4]
+  k0[1, 8] <- x[5]
+  k1[1, 8] <- x[6]
+  # state 2
+  k0[2, 3] <- x[7]
+  k1[2, 3] <- x[8]
+  k0[2, 9] <- x[9]
+  k1[2, 9] <- x[10]
+  # state 3
+  k0[3, 4] <- x[11]
+  k1[3, 4] <- x[12]
+  # state 4 (from separate estimation)
+  k0[4, 5] <- 0.66 * r45[1]
+  k1[4, 5] <- r45[2]
+  # state 5
+  k0[5, 10] <- 0.26
+  k1[5, 10] <- 0
+  # state 6
+  k0[6, 3] <- x[13]
+  k1[6, 3] <- x[14]
+  k0[6, 7] <- x[15]
+  k1[6, 7] <- x[16]
+  # state 7
+  k0[7, 4] <- x[17]
+  k1[7, 4] <- x[18]
+  # state 8
+  k0[8, 7] <- x[19]
+  k1[8, 7] <- x[20]
+  k0[8, 9] <- x[21]
+  k1[8, 9] <- x[22]
+  # state 9
+  k0[9, 4] <- x[23]
+  k1[9, 4] <- x[24]
+  
+  prev.inc <- incidence.prevrate.f.uncond(age = 50:95, y = 2014, alpha = intalpha, int.year = 2014, mcid = 1.65, f = 1, 
+                                          k0 = k0, k1 = k1)
+  
+  # sums of squares for prevalences
+  sumsquare.prev <- w1 * (1 / n1) * sum((log(prev.inc[, 1:8] + 1e-4) - log(prevs + 1e-4)) ^ 2)
+  # sums of squares for log(incidence), only ages 65:90
+  sumsquare.inc <- w2 * (1 / n2) * sum((log(prev.inc[16:41, 9] * 100) - log(incidence)) ^ 2)
+  
+  return(sumsquare.prev + sumsquare.inc)
+  
+}
+
 eval_f_logs_weighted_90 <- function(x, r45, prevs, incidence, w){
   
   w1 <- 1 / (1 + w)

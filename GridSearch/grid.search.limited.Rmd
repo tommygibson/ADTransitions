@@ -1,0 +1,238 @@
+---
+title: "(Smaller) Grid Search Results"
+output: bookdown::pdf_document2
+---
+
+We compare results from optimizations using two sets of initial values for $(\log(k_0), k_1)$: = $(-12, 0.02)$ and $(-12, 0.07\overline{3})$. 
+
+We define convergence as a relative tolerance less than 0.001 for all parameters, where the relative tolerance between two values $x$ and $y$ is defined as 
+\begin{align}
+reltol(x, y) & = \vert x - y \vert / \mbox{min}(\vert x \vert, \vert y \vert).
+\end{align}
+For the algorithm to converge on iteration $m$, all 24 parameters $k$ must have $reltol(k^{(m)}, k^{(m - 1)}) < 0.001$.
+
+```{r setup, include = FALSE, echo = FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+```{r}
+
+
+library(knitr)
+library(tidyverse)
+library(ggplot2)
+library(kableExtra)
+library(here)
+
+source(here('BrookFuncs.R'))
+source(here('AD_eval.f.g.R'))
+
+opts.grid <- readRDS(here('GridSearch', 'opts.grid.e1.rds'))
+
+# p is number of initial values / optimizations
+# k is number of parameters (12 * 2 = 24)
+
+rij <- c("r12", "r16", "r18", "r23", "r29", "r34", "r63", "r67", "r74", "r87", "r89", "r94")
+p <- length(opts.grid)
+k <- length(opts.grid[[1]]$solution)
+
+optvals <- vector(length = p)
+iters <- vector(length = p)
+params <- as.data.frame(matrix(nrow = (k / 2 * p), ncol = 3))
+
+for(i in 1:p){
+  optvals[i] <- opts.grid[[i]]$objective
+  iters[i] <- opts.grid[[i]]$iterations
+  
+  # stack parameter estimates into one matrix
+  # there are p 12 x 2 matrices
+  # 3rd column is index for which initial values were used
+  params[(1 + (i - 1) * (k / 2)):(i * k / 2), ] <- cbind(matrix(opts.grid[[i]]$solution, ncol = 2, byrow = TRUE), i)
+}
+
+colnames(params) <- c("Lk0", "k1", "init_set")
+## which set of initial values produced the "optimal optimum"?
+
+optimal <- optvals == min(optvals)
+opt.index <- which(optimal == 1)
+
+##### Optimal parameters
+
+optparams <- params %>%
+  filter(init_set == opt.index) %>%
+  select(c("Lk0", "k1"))
+
+rownames(optparams) <- rij
+
+##### Data for all transitions
+
+# this one has age as rows, columns are 12 trans for each of 8 init sets
+transitions <- cbind.data.frame(as.vector(make_transitions(Lk0_vec = params$Lk0, k1_vec = params$k1)),
+                                rep(prev.ages, (k / 2 * p)),
+                                rep(rep(rij, each = (length(prev.ages)), p)),
+                                rep(1:(k / 2 * p), each = length(prev.ages)),
+                                rep(optimal, each = (k / 2 * length(prev.ages))))
+colnames(transitions) <- c("trans_prob", "age", "transition", "init_set", "optimal")
+
+
+
+trans_fixed <- transitions %>%
+  ggplot(aes(x = age, y = trans_prob, group = init_set)) +
+  geom_line(aes(color = optimal, alpha = optimal)) +
+  facet_wrap(~ transition, nrow = 4) +
+  scale_color_manual(values = c('grey', 'red')) +
+  scale_alpha_manual(values = c(0.8, 1)) + 
+  labs(title = "Figure 1: Transition rates after optimization using different initial values",
+       y = "Transition probability", x = "Age") +
+  theme_bw()
+
+trans_free <- transitions %>%
+  ggplot(aes(x = age, y = trans_prob, group = init_set)) +
+  geom_line(aes(color = optimal, alpha = optimal)) +
+  facet_wrap(~ transition, scales = 'free', nrow = 4) +
+  scale_color_manual(values = c('grey', 'red')) +
+  scale_alpha_manual(values = c(0.75, 1)) +
+  labs(title = "Figure 2: Transition rates after optimization using different initial values",
+       y = "Transition probability", x = "Age") +
+  theme_bw()
+
+
+
+#### Fit to systematic review and Jack data
+
+opt.inc.dat <- make_incplot_data_f(opts.grid[[opt.index]]$solution)
+opt.prev.dat <- make_prevplot_data_f(opts.grid[[opt.index]]$solution)
+
+inc.dats <- list()
+prev.dats <- list()
+for(i in 1:p){
+  inc.temp <- make_incplot_data_f(opts.grid[[i]]$solution)
+  prev.temp <- make_prevplot_data_f(opts.grid[[i]]$solution)
+  
+  inc.dats[[i]] <- cbind.data.frame(inc.temp, 
+                                    c(rep(i, length(inc.ages)), rep("Sys. Review", length(inc.ages))))
+  prev.dats[[i]] <- cbind.data.frame(prev.temp,
+                                     c(rep(i, length(prev.ages) * 8), rep("Jack", length(prev.ages) * 8)))
+  
+  names(inc.dats[[i]]) <- c(names(inc.temp), 'inits')
+  names(prev.dats[[i]]) <- c(names(prev.temp), 'inits')
+  
+}
+inc.consolidated <- unique.data.frame(do.call(rbind, inc.dats))
+inc.consolidated <- inc.consolidated %>%
+  mutate(Optimal = inits == as.character(opt.index),
+         important = (Optimal == TRUE | Source == 'Empirical'))
+
+prev.consolidated <- unique.data.frame(do.call(rbind, prev.dats))
+prev.consolidated <- prev.consolidated %>%
+  mutate(Optimal = inits == as.character(opt.index),
+         important = (Optimal == TRUE | Source == "Jack"))
+
+incplot <- inc.consolidated %>%
+  ggplot(aes(x = Age, y = Incidence, group = inits, linetype = Source, color = Optimal, alpha = important)) +
+  geom_line() +
+  scale_color_manual(values = c('black', 'red')) +
+  scale_alpha_manual(values = c(0.5, 1)) +
+  scale_linetype_manual(values = c(2, 1)) +
+  guides(alpha = FALSE) +
+  labs(title = "Figure 3: Optimized and Empirical Incidence Rates",
+       y = "Incidence (% per year)") +
+  theme_bw()
+
+
+prevplot <- prev.consolidated %>%
+  ggplot(aes(x = Age, y = Prevalence_uncond, group = inits, linetype = Source, color = Optimal, alpha = important)) +
+  geom_line() + 
+  facet_wrap(~ State) +
+  scale_color_manual(values = c('black', 'red')) +
+  scale_alpha_manual(values = c(0.5, 1)) +
+  scale_linetype_manual(values = c(2, 1)) +
+  guides(alpha = FALSE) +
+  labs(title = "Figure 4: Optimized vs Jack unconditional prevalence rates",
+       y = "Unconditional Prevalence (proportion)") +
+  theme_bw()
+
+
+
+####### Lifetime risks
+
+opt.mats <- make_trans_matrix(opts.grid[[opt.index]]$solution, r45 = r45.params)
+tab.ages <- seq(60, 90, 5)
+lifetime.table.f <- as.data.frame(matrix(nrow = length(tab.ages), ncol = 10))
+lifetime.table.m <- as.data.frame(matrix(nrow = length(tab.ages), ncol = 10))
+
+lifetime.table.f[,1] <- lifetime.table.m[,1] <- tab.ages
+
+
+for(i in 1:length(tab.ages)){
+  for(j in 1:9){
+    
+    curr.f <- lifetime(age = tab.ages[i], g = "Female", state = j, k0 = opt.mats[[1]], k1 = opt.mats[[2]])
+    curr.m <- lifetime(age = tab.ages[i], g = "Male", state = j, k0 = opt.mats[[1]], k1 = opt.mats[[2]])
+    
+    lifetime.table.f[i, (j + 1)] <- curr.f[1]
+    lifetime.table.m[i, (j + 1)] <- curr.m[1]
+    
+  }
+}
+
+
+
+colnames(lifetime.table.f) <- colnames(lifetime.table.m) <- c("Age", "Normal", "A", "A+T", "A+T+N",
+                                                              "A+T+N + MCI", "T", "T+N", "N", "A+N")
+
+
+```
+
+# Results
+
+We ran each optimization to convergence. The minimum optimal value of the objective function was `r min(optvals)`, and the larger optimal value was `r max(optvals)`. The smaller optimal value actually had not reached convergence yet, after `r max(iters)` iterations. The larger optimal value was reached after `r min(iters)` iterations. 
+
+## Optimal parameters
+
+The set of optimal parameters, corresponding to the optimization with the smallest optimal value of the objective function, is shown in Table \@ref(tab:optparams).
+
+
+```{r optparams}
+kable(optparams, digits = 3, caption = "Optimal parameter values", format = 'simple')
+```
+
+## Transitions
+
+The figures below show the transition probabilities for every transition $r_{ij}(a)$ for ages $a \in (50, \dots, 95)$. Figure 1 has all y-axes fixed from 0 to 1, while Figure 2 has scales unique to each panel. The red line in each panel corresponds to transition probabilities for the optimal parameters in Table \@ref(tab:optparams).
+
+```{r transfixed, fig.height = 9}
+trans_fixed
+```
+
+
+```{r transfree, fig.height = 9}
+trans_free
+```
+
+## Fit to Incidence and Prevalence data
+
+Figures 3 and 4 below show the fit of optimized rates to the incidence data and prevalence data. In each plot, the dashed line represents the data from either the systematic review (for incidence) or Jack's 2017 paper (for prevalence), and the solid lines represent optimized estimates. The red line represents the most optimal solution.
+
+```{r incplot, fig.height = 7}
+incplot
+```
+
+```{r prevplot, fig.height = 9}
+prevplot
+```
+
+
+## Lifetime risks
+
+Tables \@ref(tab:lifetimef) and \@ref(tab:lifetimem) show the lifetime risks for ages $a \in (60, 65, \dots, 90)$ for males and females using the transition parameters in Table \@ref(tab:optparams). 
+
+```{r lifetimef}
+kable(lifetime.table.f, caption = "Lifetime risks for females", format = 'simple') %>%
+  kable_styling(latex_options = "HOLD_position")
+```
+
+```{r lifetimem}
+kable(lifetime.table.m, caption = "Lifetime risks for males", format = 'simple') %>%
+  kable_styling(latex_options = "HOLD_position")
+```

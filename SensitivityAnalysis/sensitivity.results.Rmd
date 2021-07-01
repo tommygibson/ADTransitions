@@ -1,0 +1,68 @@
+---
+title: "Sensitivity analysis for optimization results"
+output: bookdown::pdf_document2
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE)
+```
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(xtable)
+library(here)
+
+source(here("BrookFuncs.R"))
+source(here("AD_eval.f.g.R"))
+
+
+
+opt.sens <- readRDS(here("SensitivityAnalysis", "opt.sensitivity.rds"))
+sens.lifetime <- readRDS(here("SensitivityAnalysis", "sensitivity.lifetime.tables.rds"))
+opt.lifetime <- readRDS(here("GridSearch", "lifetime.optimal.rds"))
+opt.standard <- readRDS(here("GridSearch/opts.grid.e1.rds"))[[1]]
+
+
+for(i in 1:length(sens.lifetime)){
+  sens.lifetime[[i]] <- as.matrix(sens.lifetime[[i]])
+}
+for(i in 1:length(opt.lifetime)){
+  opt.lifetime[[i]] <- as.matrix(opt.lifetime[[i]])
+}
+
+
+sens.lifetime.f <- matrix(paste(opt.lifetime$f, " (", sens.lifetime$f.low, ", ", sens.lifetime$f.high, ")", sep = ""),
+                                nrow = nrow(sens.lifetime$f.low), dimnames = dimnames(sens.lifetime$f.low))
+sens.lifetime.f[,1] <- sens.lifetime$f.low[,1]
+
+std.params <- matrix(opt.standard$solution, nrow = 12, byrow = TRUE)
+low.params <- matrix(opt.sens$opt.low$solution, nrow = 12, byrow = TRUE)
+high.params <- matrix(opt.sens$opt.high$solution, nrow = 12, byrow = TRUE)
+
+
+
+trans.low <- make_transitions(Lk0_vec = low.params[,1], k1_vec = low.params[,2])
+trans.high <- make_transitions(Lk0_vec = high.params[,1], k1_vec = high.params[,2])
+
+inc.low <- make_incplot_data_f(as.vector(low.params))
+inc.high <- make_incplot_data_f(as.vector(high.params))
+
+prev.low <- make_prevplot_data_f(as.vector(low.params))
+prev.high <- make_prevplot_data_f(as.vector(high.params))
+
+
+
+
+
+```
+
+# Grid search recap
+
+We performed a grid search over initial values of transition rate parameters $\boldsymbol{k}$ in an effort to find the global optimum of the objective function 
+\begin{equation}
+f(\boldsymbol{k}) = \frac{1}{n_1} \sum_{a = 65}^{90} \Big(\log(\widehat{I}(\boldsymbol{k}, a)) - \log(I(a))\Big)^2 +  
+\frac{1}{n_2} \sum_{i \in I} \sum_{a = 50}^{95} \Big(\log(\widehat{Pu}_i(\boldsymbol{k}, a)) - \log(Pu_i(a))\Big)^2. 
+(\#eq:loss)
+\end{equation}
+
