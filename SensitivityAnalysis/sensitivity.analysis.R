@@ -16,13 +16,14 @@ library(here)
 # setwd("/Users/Tommy/Desktop/Tommy/School/Grad School/Research/Research Brookmeyer/Code")
 source(here("BrookFuncs.R"))
 source(here("AD_eval.f.g.R"))
+source(here("MCI.prevalence.R"))
 
 ages <- 50:95
 inc.ages <- 65:90
 
-empirical.incidence <- 0.00117 * exp(0.126 * (inc.ages - 60)) * 100
-incidence.low <- empirical.incidence * 0.5
-incidence.high <- empirical.incidence * 1.5
+incidence <- 0.00117 * exp(0.126 * (inc.ages - 60)) * 100
+incidence.low <- incidence * 0.5
+incidence.high <- incidence * 1.5
 
 sens.inits <- rep(c(-12, 0.02), 12)
 
@@ -32,15 +33,27 @@ lb <- rep(c(-14, 0.001), 12)
 
 ub <- rep(c(-4, 0.15), 12)
 
+# opt.middle <- nloptr(x0 = sens.inits,
+#                      eval_f = eval_f_logs_weighted,
+#                      lb = lb, ub = ub,
+#                      eval_g_ineq = eval_g_ineq_weighted,
+#                      opts = list("algorithm"="NLOPT_LN_COBYLA",
+#                                  "xtol_rel"=1e-3,
+#                                  "maxeval"=40000),
+#                      r45 = r45.params,
+#                      prevs = avg_prev_u,
+#                      incidence = incidence,
+#                      w = 1)
+
 opt.low <- nloptr(x0 = sens.inits,
                   eval_f = eval_f_logs_weighted_low,
                   lb = lb, ub = ub,
                   eval_g_ineq = eval_g_ineq_weighted,
                   opts = list("algorithm"="NLOPT_LN_COBYLA",
                              "xtol_rel"=1e-3,
-                             "maxeval"=40000),
+                             "maxeval"=30000),
                   r45 = r45.params,
-                  prevs = avg_prev_u,
+                  prevs = avg_prev_u_low,
                   incidence = incidence.low,
                   w = 1)
 
@@ -50,9 +63,9 @@ opt.high <- nloptr(x0 = sens.inits,
                    eval_g_ineq = eval_g_ineq_weighted,
                    opts = list("algorithm"="NLOPT_LN_COBYLA",
                                "xtol_rel"=1e-3,
-                               "maxeval"=40000),
+                               "maxeval"=30000),
                    r45 = r45.params,
-                   prevs = avg_prev_u,
+                   prevs = avg_prev_u_high,
                    incidence = incidence.high,
                    w = 1)
 
@@ -62,8 +75,11 @@ saveRDS(opt.sensitivity, "OptResults/opt.sensitivity.rds")
 
 #### Make lifetime tables so we don't need to keep recalculating
 tab.ages <- seq(60, 90, 5)
-low.mats <- make_trans_matrix_low(opt.low$solution, r45 = r45.params)
-high.mats <- make_trans_matrix_high(opt.high$solution, r45 = r45.params)
+r45.low <- r45.high <- r45.params
+r45.low[1] <- r45.params[1] * 0.66
+r45.high[1] <- r45.params[1] * 1.65
+low.mats <- make_trans_matrix_low(opt.low$solution, r45 = r45.low)
+high.mats <- make_trans_matrix_high(opt.high$solution, r45 = r45.high)
 
 lifetime.table.f.low <- as.data.frame(matrix(nrow = length(tab.ages), ncol = 10))
 lifetime.table.m.low <- as.data.frame(matrix(nrow = length(tab.ages), ncol = 10))

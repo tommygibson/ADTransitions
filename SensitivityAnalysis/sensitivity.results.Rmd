@@ -12,9 +12,13 @@ library(tidyverse)
 library(ggplot2)
 library(xtable)
 library(here)
+library(grid)
+library(gridExtra)
+library(knitr)
 
 source(here("BrookFuncs.R"))
 source(here("AD_eval.f.g.R"))
+source(here("MCI.prevalence.R"))
 
 
 
@@ -22,6 +26,13 @@ opt.sens <- readRDS(here("SensitivityAnalysis", "opt.sensitivity.rds"))
 sens.lifetime <- readRDS(here("SensitivityAnalysis", "sensitivity.lifetime.tables.rds"))
 opt.lifetime <- readRDS(here("GridSearch", "lifetime.optimal.rds"))
 opt.standard <- readRDS(here("GridSearch/opts.grid.e1.rds"))[[1]]
+
+inc.low.target <- empirical.incidence * 0.5
+inc.high.target <- empirical.incidence * 1.5
+
+rij <- c("r12", "r16", "r18", "r23", "r29", "r34", "r63", "r67", "r74", "r87", "r89", "r94")
+
+
 
 
 for(i in 1:length(sens.lifetime)){
@@ -36,21 +47,92 @@ sens.lifetime.f <- matrix(paste(opt.lifetime$f, " (", sens.lifetime$f.low, ", ",
                                 nrow = nrow(sens.lifetime$f.low), dimnames = dimnames(sens.lifetime$f.low))
 sens.lifetime.f[,1] <- sens.lifetime$f.low[,1]
 
-std.params <- matrix(opt.standard$solution, nrow = 12, byrow = TRUE)
-low.params <- matrix(opt.sens$opt.low$solution, nrow = 12, byrow = TRUE)
-high.params <- matrix(opt.sens$opt.high$solution, nrow = 12, byrow = TRUE)
+sens.lifetime.m <- matrix(paste(opt.lifetime$m, " (", sens.lifetime$m.low, ", ", sens.lifetime$m.high, ")", sep = ""),
+                                nrow = nrow(sens.lifetime$m.low), dimnames = dimnames(sens.lifetime$m.low))
+sens.lifetime.m[,1] <- sens.lifetime$m.low[,1]
+
+std.params <- round(matrix(opt.standard$solution, nrow = 12, byrow = TRUE), 3)
+low.params <- round(matrix(opt.sens$opt.low$solution, nrow = 12, byrow = TRUE), 3)
+high.params <- round(matrix(opt.sens$opt.high$solution, nrow = 12, byrow = TRUE), 3)
+
+params.ci <- matrix(paste(std.params, " (", low.params, ", ", high.params, ")", sep = ""),
+                    nrow = nrow(std.params))
 
 
 
 trans.low <- make_transitions(Lk0_vec = low.params[,1], k1_vec = low.params[,2])
+trans.std <- make_transitions(Lk0_vec = std.params[,1], k1_vec = std.params[,2])
 trans.high <- make_transitions(Lk0_vec = high.params[,1], k1_vec = high.params[,2])
 
-inc.low <- make_incplot_data_f(as.vector(low.params))
-inc.high <- make_incplot_data_f(as.vector(high.params))
+trans.low.high <- cbind.data.frame(as.vector(rbind(trans.low, trans.std, trans.high)),
+                                   rep(prev.ages, 12 * 3),
+                                   rep(rij, each = 3 * length(prev.ages)),
+                                   rep(rep(c("Low", "Main", "High"), each = length(prev.ages)), 3))
+names(trans.low.high) <- c('TransProb', 'Age', 'State', 'Analysis')
 
-prev.low <- make_prevplot_data_f(as.vector(low.params))
-prev.high <- make_prevplot_data_f(as.vector(high.params))
+transplot <- trans.low.high %>%
+  ggplot(aes(x = Age, y = TransProb, color = Analysis)) +
+  geom_line() +
+  facet_wrap(~State) +
+  theme_bw() + 
+  scale_color_manual(values = c('red', 'blue', 'black')) +
+  labs(title = 'Transition probabilities from main and sensitivity analyses',
+       y = 'Transition Probability')
 
+transplot.free <- trans.low.high %>%
+  ggplot(aes(x = Age, y = TransProb, color = Analysis)) +
+  geom_line() +
+  facet_wrap(~State, scales = 'free') +
+  theme_bw() + 
+  scale_color_manual(values = c('red', 'blue', 'black')) +
+  labs(title = 'Transition probabilities from main and sensitivity analyses',
+       y = 'Transition Probability')
+                                   
+
+
+inc.low <- make_incplot_data_f(as.vector(t(low.params)), r45.params = r45.low, incidence.target = inc.low.target)
+inc.mean <- make_incplot_data_f(as.vector(t(std.params)), r45.params = r45.params, incidence.target = empirical.incidence)
+inc.high <- make_incplot_data_f(as.vector(t(high.params)), r45.params = r45.high, incidence.target = inc.high.target)
+
+inc.dat <- cbind.data.frame(rbind(inc.low, inc.mean, inc.high),
+                            rep(c("Low", "Main", "High"), each = dim(inc.low)[1]))
+
+names(inc.dat) <- c(names(inc.low), "Analysis")
+
+
+
+prev.low <- make_prevplot_data_f(as.vector(t(low.params)), r45.params = r45.low, prevs = avg_prev_u_low)
+prev.high <- make_prevplot_data_f(as.vector(t(high.params)), r45.params = r45.high, prevs = avg_prev_u_high)
+
+prev.low.plot <- prev.low %>%
+  ggplot(aes(x = Age, y = Prevalence, color = Source)) + 
+  geom_line() +
+  facet_wrap( ~ State, nrow = 2) +
+  labs(title = "Low sensitivity analysis",
+       y = "Unconditional prevalence (proportion)")
+prev.high.plot <- prev.high %>%
+  ggplot(aes(x = Age, y = Prevalence, color = Source)) + 
+  geom_line() +
+  facet_wrap( ~ State, nrow = 2) +
+  labs(title = "High sensitivity analysis",
+       y = "Unconditional prevalence (proportion)")
+
+inc.low.plot <- inc.low %>%
+  ggplot(aes(x = Age, y = Incidence, color = Source)) +
+  geom_line()
+inc.high.plot <- inc.high %>%
+  ggplot(aes(x = Age, y = Incidence, color = Source)) +
+  geom_line()
+
+inc.plot <- inc.dat %>%
+  ggplot(aes(x = Age, y = Incidence, linetype = Source, color = Analysis)) +
+  geom_line() +
+  theme_bw() +
+  labs(title = 'Incidence estimates from main analysis and sensitivity analysis',
+       y = "Incidence (% per year)") +
+  scale_color_manual(values = c("red", "blue", "black"))
+
+# prevplots <- grid.arrange(prev.low.plot, prev.high.plot, nrow = 2)
 
 
 
@@ -65,4 +147,96 @@ f(\boldsymbol{k}) = \frac{1}{n_1} \sum_{a = 65}^{90} \Big(\log(\widehat{I}(\bold
 \frac{1}{n_2} \sum_{i \in I} \sum_{a = 50}^{95} \Big(\log(\widehat{Pu}_i(\boldsymbol{k}, a)) - \log(Pu_i(a))\Big)^2. 
 (\#eq:loss)
 \end{equation}
+
+The initial values used to obtain the "optimal optimum" were (-12, 0.02) for $(\log(k_0), k1)$. 
+
+# Sensitivity analysis
+
+We now perform a sensitivity analysis where we use "low" and "high" values for prevalence and incidence targets $Pu_i(a)$ and $I(a)$. Low (high) prevalence targets are calculated by first calculating the probability C(a) of being preclinical (in states 1-8) for low (high) values of the transition $\widetilde{r}_{45}(a)$, the probability of transitioning from state 4 (AN) to state 5 (AN + MCI) in the AN model. Transitions $\widetilde{r}_{45}(a)$ are multiplied by 0.66 for a low transition rate and by 1.65 for a high transition rate. The probability of being preclinical will be larger (smaller) in the low (high) sensitivity analysis, as the probability of transitioning to MCI is smaller (larger). 
+
+We multiply incidence rates I(a) by 0.5 for the low sensitivity analysis and by 1.5 for the high sensitivity analysis.
+
+We also assume the transition rates $r_{45}(a)$ (ATN to ATN + MCI) and $r_{5, 10}$ (ATN + MCI to AD Dementia) are lower and higher for the low and high sensitivity analyses. For the low analysis we multiply $r_{45}$ by 0.66 and say $r_{5, 10} = 0.26$, and for the high analysis we multiply $r_{45}$ by 1.65 and say $r_{5, 10} = 0.34$.
+
+# Results
+
+## Lifetime risks
+
+Lifetime risks for females. Values in parentheses are from the low and high sensitivity analyses, while the values outside parentheses are from the main analysis.
+
+```{r lifetimef1}
+
+kable(sens.lifetime.f[,1:4], caption = "Lifetime risks of AD dementia for females", format = 'simple')
+
+```
+
+```{r lifetimef2}
+
+kable(sens.lifetime.f[,c(1,5:7)], caption = "Lifetime risks of AD dementia for females", format = 'simple')
+
+```
+
+```{r lifetimef3}
+
+kable(sens.lifetime.f[,c(1,8:10)], caption = "Lifetime risks of AD dementia for females", format = 'simple')
+
+```
+
+\newpage
+
+Lifetime risks for males. 
+
+```{r lifetimem1}
+kable(sens.lifetime.m[,c(1:4)], caption = "Lifetime risks of AD dementia for males", format = 'simple')
+```
+
+```{r lifetimem2}
+kable(sens.lifetime.m[,c(1, 5:7)], caption = "Lifetime risks of AD dementia for males", format = 'simple')
+```
+
+```{r lifetimem3}
+kable(sens.lifetime.m[,c(1, 8:10)], caption = "Lifetime risks of AD dementia for males", format = 'simple')
+```
+
+
+There are some strange values in here. The low sensitivity analysis gives lifetime risks for state 2 (A) that are lower than state 1 (normal). The same goes for state 8 (N) and state 1. Values from the high sensitivity analysis look reasonable. 
+
+
+## Prevalence
+
+Multistate model estimates of low and high prevalence targets.
+
+```{r prevlow, fig.height=4}
+prev.low.plot
+```
+
+```{r prevhigh, fig.height = 4}
+prev.high.plot
+```
+
+
+## Incidence
+
+Multistate estimates of low and high incidence targets.
+
+```{r incplot, fig.height = 6}
+inc.plot
+```
+
+## Transitions
+
+Preclinical transition probabilities from each analysis. Second plot has free y-axes instead of all being fixed on (0, 1). It's interesting that the low and high sensitivity analyses don't consistently yield lower or higher transition probabilities.
+
+```{r transplot, fig.height = 8}
+
+transplot
+
+```
+
+
+```{r transplotfree, fig.height = 8}
+
+transplot.free
+
+```
 

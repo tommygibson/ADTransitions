@@ -582,20 +582,22 @@ eval_g_ineq_weighted <- function(x, r45, prevs, incidence, w){
 prev.ages <- 50:95
 inc.ages <- 65:90
 
-make_prevplot_data_f <- function(sol){
+r45.low <- r45.high <- r45.params
+r45.low[1] <- r45.params[1] * 0.66
+r45.high[1] <- r45.params[1] * 1.65
+
+make_prevplot_data_f <- function(sol, r45.params = r45.params, prevs = fem_prev_u){
   mats <- make_trans_matrix(sol, r45.params)
   
-  prevs.c <- Prevrate.f.multi.ATN(prev.ages, k0 = mats[[1]], k1 = mats[[2]])
   prevs.u <- Prevrate.f.multi.ATN.uncond(prev.ages, k0 = mats[[1]], k1 = mats[[2]])
   
-  dat.prev <- cbind.data.frame(c(as.vector(prevs.u), as.vector(fem_prev_u)),
-                               c(as.vector(prevs.c), as.vector(fem_prev)),
+  dat.prev <- cbind.data.frame(c(as.vector(prevs.u), as.vector(prevs)),
                                rep(prev.ages, 8 * 2),
                                rep(rep(c("Normal", "A+", "A+ T+", "A+ T+ N+",
                                          "T+", "T+ N+", "N+", "A+ N+"), each = length(prev.ages)), 2),
                                rep(c("Multistate", "Jack"), each = length(prev.ages) * 8))
   
-  names(dat.prev) <- c("Prevalence_uncond", "Prevalence_cond", "Age", "State", "Source")
+  names(dat.prev) <- c("Prevalence", "Age", "State", "Source")
   
   dat.prev$State <- factor(dat.prev$State, levels = c("Normal", "A+", "A+ T+", "A+ T+ N+",
                                                       "T+", "T+ N+", "N+", "A+ N+"))
@@ -603,12 +605,12 @@ make_prevplot_data_f <- function(sol){
   return(dat.prev)
 }
 
-make_incplot_data_f <- function(sol){
+make_incplot_data_f <- function(sol, r45.params = r45.params, incidence.target = empirical.incidence){
   mats <- make_trans_matrix(sol, r45.params)
   
   inc <- incidence.f.multi(inc.ages, k0 = mats[[1]], k1 = mats[[2]]) * 100
   
-  dat.inc <- cbind.data.frame(c(inc, empirical.incidence),
+  dat.inc <- cbind.data.frame(c(inc, incidence.target),
                               rep(inc.ages, 2),
                               rep(c("Multistate", "Empirical"), each = length(inc.ages)))
   
@@ -617,20 +619,18 @@ make_incplot_data_f <- function(sol){
   return(dat.inc)
 }
 
-make_prevplot_data_m <- function(sol){
+make_prevplot_data_m <- function(sol, r45.params = r45.params, prevs = men_prev_u){
   mats <- make_trans_matrix(sol, r45.params)
-  
-  prevs.c <- Prevrate.m.multi.ATN(prev.ages, k0 = mats[[1]], k1 = mats[[2]])
+
   prevs.u <- Prevrate.m.multi.ATN.uncond(prev.ages, k0 = mats[[1]], k1 = mats[[2]])
   
-  dat.prev <- cbind.data.frame(c(as.vector(prevs.u), as.vector(men_prev_u)),
-                               c(as.vector(prevs.c), as.vector(men_prev)),
+  dat.prev <- cbind.data.frame(c(as.vector(prevs.u), as.vector(prevs)),
                                rep(prev.ages, 8 * 2),
                                rep(rep(c("Normal", "A+", "A+ T+", "A+ T+ N+",
                                          "T+", "T+ N+", "N+", "A+ N+"), each = length(prev.ages)), 2),
                                rep(c("Multistate", "Jack"), each = length(prev.ages) * 8))
   
-  names(dat.prev) <- c("Prevalence_uncond", "Prevalence_cond", "Age", "State", "Source")
+  names(dat.prev) <- c("Prevalence", "Age", "State", "Source")
   
   dat.prev$State <- factor(dat.prev$State, levels = c("Normal", "A+", "A+ T+", "A+ T+ N+",
                                                       "T+", "T+ N+", "N+", "A+ N+"))
@@ -638,12 +638,12 @@ make_prevplot_data_m <- function(sol){
   return(dat.prev)
 }
 
-make_incplot_data_m <- function(sol){
+make_incplot_data_m <- function(sol, r45.params = r45.params, incidence.target = empirical.incidence){
   mats <- make_trans_matrix(sol, r45.params)
   
   inc <- incidence.m.multi(inc.ages, k0 = mats[[1]], k1 = mats[[2]]) * 100
   
-  dat.inc <- cbind.data.frame(c(inc, empirical.incidence),
+  dat.inc <- cbind.data.frame(c(inc, incidence.target),
                               rep(inc.ages, 2),
                               rep(c("Multistate", "Empirical"), each = length(inc.ages)))
   

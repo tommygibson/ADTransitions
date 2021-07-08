@@ -26,6 +26,7 @@ empirical.incidence <- 0.00117 * exp(0.126 * (inc.ages - 60)) * 100
 # trans.params <- read.csv("params.opt_01.26.2020.csv")[,-1]
 r45.params <- unlist(read.csv(here("params.r45.csv"))[-1])
 r45.params[1] <- exp(r45.params[1])
+
 # p.preclinical <- as.vector(read.csv("prev.preclinical_03.01.2021.csv")[,2])
 # p.preclinical <- as.vector(read.csv(here("prev.preclinical_03.15.2021.csv"))[,2])
 p.preclinical <- as.vector(read.csv(here("prev.preclinical_06.10.2021.csv"))[,2])
