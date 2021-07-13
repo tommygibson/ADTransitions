@@ -38,17 +38,37 @@ k012<-0.00105
 k112<-0.05596
 k12<-0.07
 
-##### For the sensitivity analysis, we also have "low" and "high" values for transitions to MCI
-##### and alzheimer's
+##### For the sensitivity analysis, we also have "low" and "high" values for transitions
+##### See document "Upper and lower CI factors...doc" for reference
+
 
 k0.low <- k0.high <- k0
 k1.low <- k1.high <- k1
 
+
+k0.low[1,2] <- k0[1,2] * 0.69
+k012.low <- k012 * 0.69
+k12.low <- k12 * 0.69
+k0.low[1,3] <- k0[1,3] * 0.77
+k0.low[2,4] <- k0[2,4] * 0.77
+k0.low[3,4] <- k0[3,4] * 0.61
 k0.low[4,5] <- k0[4,5] * 0.66
 k0.low[5,7] <- 0.26
+k0.low[6,7] <- 0.07
+k0.low[3,6] <- 0.0006771
+k1.low[3,6] <- 0.02775
 
+k0.high[1,2] <- k0[1,2] * 1.57
+k012.high <- k012 * 1.57
+k12.high <- k12 * 1.57
+k0.high[1,3] <- k0[1,3] * 1.27
+k0.high[2,4] <- k0[2,4] * 1.32
+k0.high[3,4] <- k0[3,4] * 1.72
 k0.high[4,5] <- k0[4,5] * 1.65
 k0.high[5,7] <- 0.34
+k0.high[6,7] <- 0.12
+k0.high[3,6] <- 0.024154
+k1.high[3,6] <- 0.00949335
 
 
 old.prevalences <- Prevrate.f.multi.AN(50:95, 2014, intalpha.AN, 2014, 1.65, 1, k0, k1, k012, k112, k12)
@@ -70,8 +90,8 @@ ggplot(data = mci.progression, mapping = aes(x = Age, y = Prevalence)) +
 # write.csv(prev.preclinical, "prev.preclinical_03.15.2021.csv")
 write.csv(prev.preclinical, "prev.preclinical_06.10.2021.csv")
 
-prevs.low <- Prevrate.f.multi.AN(50:95, 2014, intalpha.AN, 2014, 1.65, 1, k0.low, k1.low, k012, k112, k12)
-prevs.high <- Prevrate.f.multi.AN(50:95, 2014, intalpha.AN, 2014, 1.65, 1, k0.high, k1.high, k012, k112, k12)
+prevs.low <- Prevrate.f.multi.AN(50:95, 2014, intalpha.AN, 2014, 1.65, 1, k0.low, k1.low, k012.low, k112, k12.low)
+prevs.high <- Prevrate.f.multi.AN(50:95, 2014, intalpha.AN, 2014, 1.65, 1, k0.high, k1.high, k012.high, k112, k12.high)
 
 preclinical.low <- rowSums(prevs.low[,1:4]) / rowSums(prevs.low[,1:8])
 preclinical.high <- rowSums(prevs.high[,1:4]) / rowSums(prevs.high[,1:8])

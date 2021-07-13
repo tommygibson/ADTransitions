@@ -33,25 +33,28 @@ lb <- rep(c(-14, 0.001), 12)
 
 ub <- rep(c(-4, 0.15), 12)
 
-# opt.middle <- nloptr(x0 = sens.inits,
-#                      eval_f = eval_f_logs_weighted,
-#                      lb = lb, ub = ub,
-#                      eval_g_ineq = eval_g_ineq_weighted,
-#                      opts = list("algorithm"="NLOPT_LN_COBYLA",
-#                                  "xtol_rel"=1e-3,
-#                                  "maxeval"=40000),
-#                      r45 = r45.params,
-#                      prevs = avg_prev_u,
-#                      incidence = incidence,
-#                      w = 1)
+lb.test <- rep(c(-15, 0.00001), 12)
+ub.test <- rep(c(-0.00001, 0.20), 12)
+
+opt.middle.test <- nloptr(x0 = sens.inits,
+                          eval_f = eval_f_logs_weighted,
+                          lb = lb.test, ub = ub.test,
+                          eval_g_ineq = eval_g_ineq_weighted,
+                          opts = list("algorithm"="NLOPT_LN_COBYLA",
+                                      "xtol_rel"=1e-3,
+                                      "maxeval"=200),
+                          r45 = r45.params,
+                          prevs = avg_prev_u,
+                          incidence = incidence,
+                          w = 1)
 
 opt.low <- nloptr(x0 = sens.inits,
                   eval_f = eval_f_logs_weighted_low,
-                  lb = lb, ub = ub,
+                  lb = lb.test, ub = ub.test,
                   eval_g_ineq = eval_g_ineq_weighted,
                   opts = list("algorithm"="NLOPT_LN_COBYLA",
                              "xtol_rel"=1e-3,
-                             "maxeval"=30000),
+                             "maxeval"=40000),
                   r45 = r45.params,
                   prevs = avg_prev_u_low,
                   incidence = incidence.low,
@@ -63,7 +66,7 @@ opt.high <- nloptr(x0 = sens.inits,
                    eval_g_ineq = eval_g_ineq_weighted,
                    opts = list("algorithm"="NLOPT_LN_COBYLA",
                                "xtol_rel"=1e-3,
-                               "maxeval"=30000),
+                               "maxeval"=40000),
                    r45 = r45.params,
                    prevs = avg_prev_u_high,
                    incidence = incidence.high,
