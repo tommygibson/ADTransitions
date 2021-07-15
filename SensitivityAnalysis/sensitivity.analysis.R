@@ -42,7 +42,7 @@ opt.middle.test <- nloptr(x0 = sens.inits,
                           eval_g_ineq = eval_g_ineq_weighted,
                           opts = list("algorithm"="NLOPT_LN_COBYLA",
                                       "xtol_rel"=1e-3,
-                                      "maxeval"=200),
+                                      "maxeval"=40000),
                           r45 = r45.params,
                           prevs = avg_prev_u,
                           incidence = incidence,
@@ -62,7 +62,7 @@ opt.low <- nloptr(x0 = sens.inits,
 
 opt.high <- nloptr(x0 = sens.inits,
                    eval_f = eval_f_logs_weighted_high,
-                   lb = lb, ub = ub,
+                   lb = lb.test, ub = ub.test,
                    eval_g_ineq = eval_g_ineq_weighted,
                    opts = list("algorithm"="NLOPT_LN_COBYLA",
                                "xtol_rel"=1e-3,
@@ -72,9 +72,9 @@ opt.high <- nloptr(x0 = sens.inits,
                    incidence = incidence.high,
                    w = 1)
 
-opt.sensitivity <- list(opt.low, opt.high)
-names(opt.sensitivity) <- c("opt.low", "opt.high")
-saveRDS(opt.sensitivity, "OptResults/opt.sensitivity.rds")
+opt.sensitivity <- list(opt.middle.test, opt.low, opt.high)
+names(opt.sensitivity) <- c("opt.middle", "opt.low", "opt.high")
+saveRDS(opt.sensitivity, "OptResults/opt.sensitivity.unrestricted.rds")
 
 #### Make lifetime tables so we don't need to keep recalculating
 tab.ages <- seq(60, 90, 5)
