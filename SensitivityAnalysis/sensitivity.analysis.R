@@ -82,12 +82,12 @@ r45.low <- r45.high <- r45.params
 r45.low[1] <- r45.params[1] * 0.66
 r45.high[1] <- r45.params[1] * 1.65
 low.mats <- make_trans_matrix_low(opt.low$solution, r45 = r45.low)
+mid.mats <- make_trans_matrix(opt.middle.test$solution, r45 = r45.params)
 high.mats <- make_trans_matrix_high(opt.high$solution, r45 = r45.high)
 
-lifetime.table.f.low <- as.data.frame(matrix(nrow = length(tab.ages), ncol = 10))
-lifetime.table.m.low <- as.data.frame(matrix(nrow = length(tab.ages), ncol = 10))
-lifetime.table.f.high <- as.data.frame(matrix(nrow = length(tab.ages), ncol = 10))
-lifetime.table.m.high <- as.data.frame(matrix(nrow = length(tab.ages), ncol = 10))
+lifetime.table.f.low <- lifetime.table.m.low <- 
+  lifetime.table.f.mid <- lifetime.table.m.mid <- 
+  lifetime.table.f.high <- lifetime.table.m.high <- as.data.frame(matrix(nrow = length(tab.ages), ncol = 10))
 
 lifetime.table.f.low[,1] <- lifetime.table.m.low[,1] <- 
   lifetime.table.f.high[,1] <- lifetime.table.m.high[,1] <- tab.ages
@@ -98,19 +98,26 @@ for(i in 1:length(tab.ages)){
     
     curr.f.low <- lifetime(age = tab.ages[i], g = "Female", state = j, k0 = low.mats[[1]], k1 = low.mats[[2]])
     curr.m.low <- lifetime(age = tab.ages[i], g = "Male", state = j, k0 = low.mats[[1]], k1 = low.mats[[2]])
+    curr.f.mid <- lifetime(age = tab.ages[i], g = "Female", state = j, k0 = mid.mats[[1]], k1 = mid.mats[[2]])
+    curr.m.mid <- lifetime(age = tab.ages[i], g = "Male", state = j, k0 = mid.mats[[1]], k1 = mid.mats[[2]])
     curr.f.high <- lifetime(age = tab.ages[i], g = "Female", state = j, k0 = high.mats[[1]], k1 = high.mats[[2]])
     curr.m.high <- lifetime(age = tab.ages[i], g = "Male", state = j, k0 = high.mats[[1]], k1 = high.mats[[2]])
     
     lifetime.table.f.low[i, (j + 1)] <- curr.f.low[1]
     lifetime.table.m.low[i, (j + 1)] <- curr.m.low[1]
+    lifetime.table.f.mid[i, (j + 1)] <- curr.f.mid[1]
+    lifetime.table.m.mid[i, (j + 1)] <- curr.m.mid[1]
     lifetime.table.f.high[i, (j + 1)] <- curr.f.high[1]
     lifetime.table.m.high[i, (j + 1)] <- curr.m.high[1]
     
   }
 }
 
-sensitivity.lifetime.tables <- list(lifetime.table.f.low, lifetime.table.m.low, lifetime.table.f.high, lifetime.table.m.high)
-names(sensitivity.lifetime.tables) <- c("f.low", "m.low", "f.high", "m.high")
+sensitivity.lifetime.tables <- list(lifetime.table.f.low, lifetime.table.m.low, 
+                                    lifetime.table.f.mid, lifetime.table.m.mid,
+                                    lifetime.table.f.high, lifetime.table.m.high)
+
+names(sensitivity.lifetime.tables) <- c("f.low", "m.low", "f.mid", "m.mid", "f.high", "m.high")
 for(i in 1:length(sensitivity.lifetime.tables)){
   names(sensitivity.lifetime.tables[[i]]) <- c("Age", "Normal", "A", "A+T", "A+T+N",
                                                "A+T+N + MCI", "T", "T+N", "N", "A+N")

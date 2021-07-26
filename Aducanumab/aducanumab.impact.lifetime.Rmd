@@ -1,0 +1,236 @@
+---
+title: "Assessing potential impact of Aducanumab on lifetime risks of Alzheimer's Dementia"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE)
+```
+
+## Introduction
+
+The drug Aducanumab was recently approved by the Federal Drug Administration (FDA) for use in people with mild cognitive impairment (MCI) who also have a significant buildup of Amyloid plaque in the brain. The drug is designed to reduce Amyloid plague buildup, which hopefully slows the progression from MCI to early-stage Alzheimer's disease (AD) dementia. 
+
+Here we assess the potential impact of Aducanumab using a multistate model for AD dementia. The states in the model are
+
+1. Normal
+2. Amyloidosis (A)
+3. Neurodegeneration (N)
+4. A + N
+5. A + N + MCI
+6. N + MCI
+7. AD dementia.
+
+We assume a set of potential drug effects on the probability of transitioning from state 5 (A + N + MCI) to state 7 (AD dementia), with potential relative risks (RRs) of 0.95, 0.9, and 0.75. We calculate lifetime and ten-year risks of developing AD dementia for each of these RRs, to be compared with an RR of 1 (no drug effect). We also calculate lifetime and ten-year risks under the assumption that Aducanumab takes effect without delay or with a 2-year delay.
+
+## Lifetime risks: females
+
+Below are tables for female lifetime risks of AD dementia for ages $\in (60, 65, \dots, 95)$ for each potential RR in descending order (1, 0.95, 0.90, 0.75). There are two tables for each RR (except RR = 1) and sex: the first has a two-year delay until the intervention takes effect. The second has no delay. 
+
+```{r}
+library(tidyverse)
+library(here)
+library(knitr)
+
+aducan <- readRDS(here("Aducanumab", "Aducan.lifetime.rds"))
+
+aducan.nodelay <- readRDS(here("Aducanumab", "Aducan.nodelay.lifetime.rds"))
+
+
+
+```
+
+```{r rr1f}
+
+kable(aducan$lifetime.f$`RR=1`, caption = "Lifetime risks of AD dementia if Aducanumab has no treatment effect", 
+      format = 'simple')
+
+
+```
+
+\newpage
+
+```{r rr95f}
+
+kable(aducan$lifetime.f$`RR=0.95`, caption = "Lifetime risks of AD dementia if Aducanumab has an RR of 0.95 with 2-year delay",
+      format = 'simple')
+
+kable(aducan.nodelay$lifetime.f$`RR=0.95`, caption = "Lifetime risks of AD dementia if Aducanumab has an RR of 0.95 with no delay",
+      format = 'simple')
+
+```
+
+```{r rr9f}
+
+kable(aducan$lifetime.f$`RR=0.9`, caption = "Lifetime risks of AD dementia if Aducanumab has an RR of 0.9 with 2-year delay", 
+      format = 'simple')
+```
+
+\newpage
+
+```{r}
+kable(aducan.nodelay$lifetime.f$`RR=0.9`, caption = "Lifetime risks of AD dementia if Aducanumab has an RR of 0.9 with no delay", 
+      format = 'simple')
+
+```
+
+```{r rr75f}
+
+kable(aducan$lifetime.f$`RR=0.75`, caption = "Lifetime risks of AD dementia if Aducanumab has an RR of 0.75with 2-year delay",
+      format = 'simple')
+
+kable(aducan.nodelay$lifetime.f$`RR=0.75`, caption = "Lifetime risks of AD dementia if Aducanumab has an RR of 0.75 with no delay",
+      format = 'simple')
+
+```
+
+\newpage
+
+## Ten-year risks: females
+
+Below are tables of female ten-year risks of AD dementia for each RR in descending order. 
+
+```{r ty1f}
+
+kable(aducan$tenyear.f$`RR=1`, caption = "Ten-year risks of AD dementia if Aducanumab has an RR of 1",
+      format = 'simple')
+
+```
+
+```{r ty95f}
+
+kable(aducan$tenyear.f$`RR=0.95`, caption = 'Ten-year risks of AD dementia if Aducanumab has an RR of 0.95 with 2-year delay',
+      format = 'simple')
+
+kable(aducan.nodelay$tenyear.f$`RR=0.95`, caption = 'Ten-year risks of AD dementia if Aducanumab has an RR of 0.95 with no delay',
+      format = 'simple')
+
+```
+
+\newpage
+
+```{r ty9f}
+
+kable(aducan$tenyear.f$`RR=0.9`, caption = 'Ten-year risks of AD dementia if Aducanumab has an RR of 0.9 with 2-year delay',
+      format = 'simple')
+
+kable(aducan.nodelay$tenyear.f$`RR=0.9`, caption = 'Ten-year risks of AD dementia if Aducanumab has an RR of 0.9 with no delay',
+      format = 'simple')
+```
+
+```{r ty75f}
+
+kable(aducan$tenyear.f$`RR=0.75`, caption = 'Ten-year risks of AD dementia if Aducanumab has an RR of 0.75 with 2-year delay',
+      format = 'simple')
+```
+
+\newpage
+
+```{r}
+
+kable(aducan.nodelay$tenyear.f$`RR=0.75`, caption = 'Ten-year risks of AD dementia if Aducanumab has an RR of 0.75 with no delay',
+      format = 'simple')
+
+```
+
+## Lifetime risks: males
+
+Below are tables for male lifetime risks of AD dementia for ages $\in (60, 65, \dots, 95)$ for each potential RR in descending order (1, 0.95, 0.90, 0.75). 
+
+```{r rr1m}
+
+kable(aducan$lifetime.m$`RR=1`, caption = "Lifetime risks of AD dementia if Aducanumab has no treatment effect", 
+      format = 'simple')
+
+```
+
+\newpage
+
+```{r rr95m}
+
+kable(aducan$lifetime.m$`RR=0.95`, caption = "Lifetime risks of AD dementia if Aducanumab has an RR of 0.95 with 2-year delay",
+      format = 'simple')
+
+kable(aducan.nodelay$lifetime.m$`RR=0.95`, caption = "Lifetime risks of AD dementia if Aducanumab has an RR of 0.95 with no delay",
+      format = 'simple')
+
+```
+
+
+```{r rr9m}
+
+kable(aducan$lifetime.m$`RR=0.9`, caption = "Lifetime risks of AD dementia if Aducanumab has an RR of 0.9 with 2-year delay", 
+      format = 'simple')
+```
+
+\newpage
+
+```{r}
+
+kable(aducan.nodelay$lifetime.m$`RR=0.9`, caption = "Lifetime risks of AD dementia if Aducanumab has an RR of 0.9 with no delay", 
+      format = 'simple')
+
+```
+
+```{r rr75m}
+
+kable(aducan$lifetime.m$`RR=0.75`, caption = "Lifetime risks of AD dementia if Aducanumab has an RR of 0.75 with 2-year delay",
+      format = 'simple')
+
+kable(aducan.nodelay$lifetime.m$`RR=0.75`, caption = "Lifetime risks of AD dementia if Aducanumab has an RR of 0.75 with no delay",
+      format = 'simple')
+
+```
+
+\newpage
+
+## Ten-year risks: males
+
+Below are tables of male ten-year risks of AD dementia for each RR in descending order. 
+
+```{r ty1m}
+
+kable(aducan$tenyear.m$`RR=1`, caption = "Ten-year risks of AD dementia if Aducanumab has an RR of 1",
+      format = 'simple')
+```
+
+
+```{r ty95m}
+
+kable(aducan$tenyear.m$`RR=0.95`, caption = 'Ten-year risks of AD dementia if Aducanumab has an RR of 0.95 with 2-year delay',
+      format = 'simple')
+
+kable(aducan.nodelay$tenyear.m$`RR=0.95`, caption = 'Ten-year risks of AD dementia if Aducanumab has an RR of 0.95 with no delay',
+      format = 'simple')
+
+```
+
+\newpage
+
+```{r ty9m}
+
+kable(aducan$tenyear.m$`RR=0.9`, caption = 'Ten-year risks of AD dementia if Aducanumab has an RR of 0.9 with 2-year delay',
+      format = 'simple')
+
+kable(aducan.nodelay$tenyear.m$`RR=0.9`, caption = 'Ten-year risks of AD dementia if Aducanumab has an RR of 0.9 with no delay',
+      format = 'simple')
+
+```
+
+```{r ty75m}
+
+kable(aducan$tenyear.m$`RR=0.75`, caption = 'Ten-year risks of AD dementia if Aducanumab has an RR of 0.75',
+      format = 'simple')
+```
+
+\newpage
+
+```{r}
+
+kable(aducan.nodelay$tenyear.m$`RR=0.75`, caption = 'Ten-year risks of AD dementia if Aducanumab has an RR of 0.75 with no delay',
+      format = 'simple')
+
+```
+
+
+The effect of Aducanumab on lifetime and ten-year risks of AD dementia seems to be pretty small even under the most liberal assumption of RR = 0.75. 
