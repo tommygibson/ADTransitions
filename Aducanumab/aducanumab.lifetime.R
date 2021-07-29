@@ -37,22 +37,16 @@ for(i in 1:length(alpha.drug.effects)){
                                      k0 = k0.AN, k1 = k1.AN, k012 = k012.AN, k112 = k112.AN, k12 = k12.AN)
       lifetime.m.curr <- lifetime.AN(lifetime.ages[j], "Male", k, 2017 + delay, alpha = alpha.drug.effects[[i]], 
                                      k0 = k0.AN, k1 = k1.AN, k012 = k012.AN, k112 = k112.AN, k12 = k12.AN)
-      Aducan.lifetime.f[[i]][j, k] <- cbind(seq(60, 95, 5), lifetime.f.curr[1])
-      Aducan.lifetime.m[[i]][j, k] <- cbind(seq(60, 95, 5), lifetime.m.curr[1])
-      Aducan.tenyear.f[[i]][j, k] <-  cbind(seq(60, 95, 5), lifetime.f.curr[2])
-      Aducan.tenyear.m[[i]][j, k] <-  cbind(seq(60, 95, 5), lifetime.m.curr[2])
+      Aducan.lifetime.f[[i]][j, k] <- lifetime.f.curr[1]
+      Aducan.lifetime.m[[i]][j, k] <- lifetime.m.curr[1]
+      Aducan.tenyear.f[[i]][j, k] <-  lifetime.f.curr[2]
+      Aducan.tenyear.m[[i]][j, k] <-  lifetime.m.curr[2]
       
-      Aducan.lifetime.f[[i]] <- cbind(seq(60, 95, 5), Aducan.lifetime.f[[i]])
-      Aducan.lifetime.m[[i]] <- cbind(seq(60, 95, 5), Aducan.lifetime.m[[i]])
-      Aducan.tenyear.f[[i]] <- cbind(seq(60, 95, 5), Aducan.tenyear.f[[i]])
-      Aducan.tenyear.m[[i]] <- cbind(seq(60, 95, 5), Aducan.tenyear.m[[i]])
+      Aducan.lifetime.f[[i]] <-  Aducan.lifetime.f[[i]]
+      Aducan.lifetime.m[[i]] <-  Aducan.lifetime.m[[i]]
+      Aducan.tenyear.f[[i]] <- Aducan.tenyear.f[[i]]
+      Aducan.tenyear.m[[i]] <- Aducan.tenyear.m[[i]]
       
-      colnames(Aducan.lifetime.f[[i]]) <- colnames(Aducan.lifetime.m[[i]]) <- 
-        colnames(Aducan.tenyear.f[[i]]) <- colnames(Aducan.tenyear.m[[i]]) <- 
-        c("Age", "Normal[1]", "A[2]", "N[3]", "A+N[4]", "A+N+MCI[5]", "N+MCI[6]")
-      rownames(Aducan.lifetime.f[[i]]) <- rownames(Aducan.lifetime.m[[i]]) <- 
-        rownames(Aducan.tenyear.f[[i]]) <- rownames(Aducan.tenyear.m[[i]]) <- 
-        NULL
     }
   }
 }
