@@ -1,0 +1,72 @@
+---
+title: Forecasting impact of Aducanumab intervention on the prevalence of Alzheimer's
+  dementia
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+```
+
+```{r}
+
+library(knitr)
+library(tidyverse)
+library(here)
+
+RR1.forecast <- read.csv(here('Aducanumab', 'forecasts.1.csv'))
+RR75.forecast <- read.csv(here('Aducanumab', 'forecasts.75.csv'))
+
+names(RR1.forecast) <- names(RR75.forecast) <- 
+  c('Year', 'Normal', 'A', 'N', 'A+N', 'A+N+MCI', 'N+MCI', 
+    'Early AD Prevalence', 'Late AD Prevalence', 'Total Incidence', 'Incidence from 5')
+rownames(RR1.forecast) <- rownames(RR75.forecast) <- NULL
+
+RR1 <- RR1.forecast[c(1, seq(5, 40, 5)),]
+
+RR.75 <- RR75.forecast[c(1, seq(5, 40, 5)),]
+
+rownames(RR1) <- rownames(RR.75) <- NULL
+RRdiff <- RR.75 - RR1
+RRdiff[,1] <- RR1[,1]
+
+
+```
+
+## Aducanumab intervention
+
+The drug Aducanumab is designed to break up amyloid plaques in the hope of preventing a transition to early Alzheimer's disease (AD) dementia from a state of mild cognitive impairment (MCI). Here we estimate the potential impact of the intervention on prevalence and incidence estimates of AD. We use a relative risk (RR) of 0.75 for the intervention effect. 
+
+## Pre-Alzheimer's states
+
+We see below that the main impact of Aducanumab on prevalence estimates for disease states leading up to AD is a buildup of those in the A + N + MCI state. 
+
+```{r}
+
+kable(RR1[,1:7], caption = 'Prevalence estimates (millions) for pre-AD states up to the year 2060 with no intervention',
+      format = 'simple')
+
+kable(RR.75[,1:7], caption = 'Prevalence estimates (millions) for pre-AD states up to the year 2060 with an intervention RR of 0.75',
+      format = 'simple')
+
+```
+
+## Early and late AD prevalence and incidence
+
+Here we see that prevalence estimates for both early and late AD go down with an intervention. Curiously, incidence numbers rise. I'm still working to see if this is a bug in the code or if it's legitimate. 
+
+```{r}
+
+kable(RR1[,c(1, 8:11)], caption = "Prevalence and incidence estimates (in millions) for AD states up to 2060 with no intervention", format = 'simple')
+
+kable(RR.75[,c(1, 8:11)], caption = 'Prevalence and incidence estimates (in millions) for AD states up to 2060 with intervention RR of 0.75', format = 'simple')
+
+```
+
+Below is a table showing the change in prevalence and incidence estimates from Table 3 to Table 4.
+
+```{r}
+
+kable(RRdiff[,c(1, 8:11)], caption = 'Change in prevalence and incidence estimates (in millions) with an intervention with RR of 0.75', format = 'simple')
+
+```

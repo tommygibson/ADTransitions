@@ -1,0 +1,136 @@
+---
+title: "Estimating the effects of Aducanumab on lifetime and ten-year risks of Alzheimer's disease"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+```
+
+# Inflating treatment effects
+
+Aducanumab has not been shown to have a massive treatment effect on the probability of developing Alzheimer's disease (AD). The relative risk (RR) for 1-year transitions is likely in the range of 0.75-1. However, it may be useful to see how a treatment with a larger effect would impact lifetime risks of AD. To that end, we assume RRs of 0.75, 0.50, and 0.25 to see how they change lifetime and ten-year risks.
+
+# Lifetime Risks
+
+## Females
+
+We format tables such that each table represents a given starting state in the multistate model. Columns correspond to lifetime risks for each RR $\in (1, 0.75, 0.50, 0.25)$ for each age (rows). 
+
+```{r}
+
+library(knitr)
+library(tidyverse)
+library(here)
+
+big <- readRDS(here("Aducanumab", "big.effects.rds"))
+
+lifetime.f <- big$lifetime.f
+lifetime.m <- big$lifetime.m
+ten.f <- big$tenyear.f
+ten.m <- big$tenyear.m
+
+kable(lifetime.f$state1, caption = "Lifetime risks for females in state 1 (Normal)",
+      format = 'simple')
+
+kable(lifetime.f$state2, caption = 'Lifetime risks for females in state 2 (Amyloid)',
+      format = 'simple')
+
+```
+
+\newpage
+
+```{r}
+
+kable(lifetime.f$state3, caption = 'Lifetime risks for females in state 3 (Neurodegeneration)',
+      format = 'simple')
+
+kable(lifetime.f$state4, caption = "Lifetime risks for females in state 4 (A + N)",
+      format = 'simple')
+
+kable(lifetime.f$state5, caption = "Lifetime risks for females in state 5 (A + N + MCI)",
+      format = 'simple')
+```
+
+\newpage
+
+## Males
+
+```{r}
+kable(lifetime.m$state1, caption = "Lifetime risks for males in state 1 (Normal)",
+      format = 'simple')
+
+kable(lifetime.m$state2, caption = 'Lifetime risks for males in state 2 (Amyloid)',
+      format = 'simple')
+
+kable(lifetime.m$state3, caption = 'Lifetime risks for males in state 3 (Neurodegeneration)',
+      format = 'simple')
+
+```
+
+\newpage
+
+```{r}
+
+kable(lifetime.m$state4, caption = "Lifetime risks for males in state 4 (A + N)",
+      format = 'simple')
+
+kable(lifetime.m$state5, caption = "Lifetime risks for males in state 5 (A + N + MCI)",
+      format = 'simple')
+```
+
+# Ten-year risks
+
+## Females
+
+```{r}
+
+kable(ten.f$state1, caption = "Ten-year risks for females in state 1 (Normal)",
+      format = 'simple')
+
+```
+
+\newpage
+
+```{r}
+
+kable(ten.f$state2, caption = "Ten-year risks for females in state 2 (Amyloid)",
+      format = 'simple')
+
+kable(ten.f$state3, caption = "Ten-year risks for females in state 3 (Neurodegeneration)",
+      format = 'simple')
+
+kable(ten.f$state4, caption = "Ten-year risks for females in state 4 (A + N)",
+      format = 'simple')
+
+kable(ten.f$state5, caption = "Ten-year risks for females in state 5 (A + N + MCI)",
+      format = 'simple')
+
+```
+
+## Males
+
+```{r}
+
+kable(ten.f$state1, caption = "Ten-year risks for females in state 1 (Normal)",
+      format = 'simple')
+
+kable(ten.f$state2, caption = "Ten-year risks for females in state 2 (Amyloid)",
+      format = 'simple')
+
+kable(ten.f$state3, caption = "Ten-year risks for females in state 3 (Neurodegeneration)",
+      format = 'simple')
+
+```
+
+\newpage
+
+```{r}
+
+kable(ten.f$state4, caption = "Ten-year risks for females in state 4 (A + N)",
+      format = 'simple')
+
+kable(ten.f$state5, caption = "Ten-year risks for females in state 5 (A + N + MCI)",
+      format = 'simple')
+
+```
