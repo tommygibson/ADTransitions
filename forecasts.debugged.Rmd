@@ -1,0 +1,78 @@
+---
+title: "Fixing Bug in Forecasts App"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE)
+```
+
+The online [forecasting app](https://alzheimers-stats.shinyapps.io/forecasts/) has an apparent bug, where specifying an intervention year later than 2018 combined with specifying a treatment effect on the transition from state 5 (A+N+MCI) to state 7 (early AD) results in incidence rates of AD dementia even higher than with no intervention. 
+
+I think I found the bug, and in this document I outline what results look like with the bug fixed. I will compare what results from the original forecasts app look like and compare them with the results from the debugged function.
+
+## No intervention, starting in 2018
+
+These two tables should be equivalent. Numbers are in millions of persons. Columns 2 through 5 are prevalence of states 5 and 6 (A+N+MCI, N+MCI), and early and late AD dementia. Columns 6 and 7 are total incidence of AD dementia and incidence from state 5 (A+N+MCI).
+
+```{r}
+
+library(knitr)
+
+tables <- readRDS('fixing.forecasts.rds')
+for(i in 1:length(tables)){
+  rownames(tables[[i]]) <- NULL
+}
+
+kable(tables[[1]][,c(1, 6:11)], caption = "Original app results with no intervention",
+      format = 'simple')
+
+kable(tables[[2]][,c(1, 6:11)], caption = "Debugged results with no intervention",
+      format = 'simple')
+
+
+```
+
+## Intervention starting in 2018
+
+Here we input a multiplicative treatment effect of 0.75 on the transition from state 5 to 7, starting in 2017. Results from the original app and the debugged version should again be equivalent.
+
+```{r}
+
+kable(tables[[3]][,c(1, 6:11)], caption = "Original app with 2018 intervention",
+      format = 'simple')
+
+kable(tables[[4]][, c(1, 6:11)], caption = 'Debugged app with 2018 intervention',
+      format = 'simple')
+
+
+```
+
+
+## Intervention starting in 2019
+
+Here we impose a delay on the treatment effect for state 5 to state 7 until 2019. The original app shows inflated incidence numbers, while the debugged version does not.
+
+```{r}
+
+kable(tables[[5]][, c(1, 6:11)], caption = 'Original app with 2019 intervention on 5 to 7',
+      format = 'simple')
+
+kable(tables[[6]][, c(1, 6:11)], caption = 'Debugged app with 2019 intervention on 5 to 7',
+      format = 'simple')
+
+```
+
+The bug in the original also affects the transition from 6 (N+MCI) to 7. The debugged code fixes this.
+
+```{r}
+
+kable(tables[[7]][, c(1, 6:11)], caption = 'Original app with 2019 intervention on 6 to 7',
+      format = 'simple')
+
+kable(tables[[8]][, c(1, 6:11)], caption = 'Debugged app with 2019 intervention on 6 to 7',
+      format = 'simple')
+
+```
+
+The fixes also apply to intervention dates later than 2019.
